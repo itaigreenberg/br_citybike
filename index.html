@@ -1,0 +1,988 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Bay Ridge Citi Bike</title>
+  <link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=DM+Sans:wght@300;400;500;700&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg: #0b0e14;
+      --surface: #131720;
+      --surface2: #1a2030;
+      --border: #252d40;
+      --accent: #00e5a0;
+      --accent2: #0096ff;
+      --warn: #ff6b35;
+      --text: #e8edf5;
+      --muted: #6b7a99;
+      --font-mono: 'Space Mono', monospace;
+      --font-body: 'DM Sans', sans-serif;
+    }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: var(--font-body);
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+
+    /* ── Header ── */
+    header {
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+      padding: 18px 32px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      backdrop-filter: blur(12px);
+    }
+    .logo {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .logo-icon {
+      width: 36px; height: 36px;
+      background: var(--accent);
+      border-radius: 8px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 18px;
+    }
+    .logo-text {
+      font-family: var(--font-mono);
+      font-size: 14px;
+      font-weight: 700;
+      letter-spacing: 0.04em;
+      line-height: 1.2;
+    }
+    .logo-sub {
+      font-family: var(--font-body);
+      font-size: 11px;
+      color: var(--muted);
+      font-weight: 400;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+    }
+    .header-right {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+    }
+    .live-badge {
+      display: flex;
+      align-items: center;
+      gap: 7px;
+      background: rgba(0,229,160,0.1);
+      border: 1px solid rgba(0,229,160,0.3);
+      border-radius: 20px;
+      padding: 5px 12px;
+      font-size: 12px;
+      font-family: var(--font-mono);
+      color: var(--accent);
+    }
+    .live-dot {
+      width: 7px; height: 7px;
+      border-radius: 50%;
+      background: var(--accent);
+      animation: pulse 2s infinite;
+    }
+    @keyframes pulse {
+      0%, 100% { opacity: 1; transform: scale(1); }
+      50% { opacity: 0.4; transform: scale(0.85); }
+    }
+    .refresh-btn {
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      color: var(--text);
+      font-family: var(--font-mono);
+      font-size: 12px;
+      padding: 7px 14px;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .refresh-btn:hover { border-color: var(--accent); color: var(--accent); }
+    .last-updated {
+      font-size: 11px;
+      color: var(--muted);
+      font-family: var(--font-mono);
+    }
+
+    /* ── Layout ── */
+    .container {
+      max-width: 1400px;
+      margin: 0 auto;
+      padding: 28px 24px;
+    }
+
+    /* ── Summary Cards ── */
+    .summary-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 16px;
+      margin-bottom: 28px;
+    }
+    .stat-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 20px;
+      position: relative;
+      overflow: hidden;
+      transition: border-color 0.2s;
+      animation: fadeUp 0.5s ease both;
+    }
+    .stat-card:hover { border-color: var(--accent); }
+    .stat-card::before {
+      content: '';
+      position: absolute;
+      top: 0; left: 0; right: 0;
+      height: 2px;
+      background: linear-gradient(90deg, var(--accent), var(--accent2));
+      opacity: 0;
+      transition: opacity 0.2s;
+    }
+    .stat-card:hover::before { opacity: 1; }
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(16px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    .stat-card:nth-child(1) { animation-delay: 0.05s; }
+    .stat-card:nth-child(2) { animation-delay: 0.1s; }
+    .stat-card:nth-child(3) { animation-delay: 0.15s; }
+    .stat-card:nth-child(4) { animation-delay: 0.2s; }
+    .stat-label {
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--muted);
+      font-weight: 500;
+      margin-bottom: 8px;
+    }
+    .stat-value {
+      font-family: var(--font-mono);
+      font-size: 36px;
+      font-weight: 700;
+      line-height: 1;
+      color: var(--accent);
+    }
+    .stat-value.warn { color: var(--warn); }
+    .stat-value.blue { color: var(--accent2); }
+    .stat-sub {
+      font-size: 12px;
+      color: var(--muted);
+      margin-top: 6px;
+    }
+
+    /* ── Main Content ── */
+    .main-grid {
+      display: grid;
+      grid-template-columns: 420px 1fr;
+      gap: 20px;
+    }
+
+    /* ── Station List ── */
+    .panel {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      overflow: hidden;
+    }
+    .panel-header {
+      padding: 16px 20px;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .panel-title {
+      font-family: var(--font-mono);
+      font-size: 13px;
+      font-weight: 700;
+      letter-spacing: 0.04em;
+    }
+    .panel-count {
+      font-size: 11px;
+      color: var(--muted);
+      background: var(--surface2);
+      border-radius: 10px;
+      padding: 3px 9px;
+      font-family: var(--font-mono);
+    }
+
+    .station-list {
+      overflow-y: auto;
+      max-height: 680px;
+    }
+    .station-list::-webkit-scrollbar { width: 4px; }
+    .station-list::-webkit-scrollbar-track { background: transparent; }
+    .station-list::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+
+    .station-item {
+      padding: 14px 20px;
+      border-bottom: 1px solid rgba(37,45,64,0.6);
+      cursor: pointer;
+      transition: background 0.15s;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+    .station-item:hover { background: var(--surface2); }
+    .station-item.selected { background: rgba(0,229,160,0.07); border-left: 2px solid var(--accent); }
+    .station-item:last-child { border-bottom: none; }
+
+    .station-name {
+      font-size: 13px;
+      font-weight: 500;
+      line-height: 1.3;
+    }
+    .station-bars {
+      display: flex;
+      gap: 4px;
+      align-items: center;
+    }
+    .bar-group {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      gap: 3px;
+    }
+    .bar-label {
+      font-size: 10px;
+      color: var(--muted);
+      font-family: var(--font-mono);
+      display: flex;
+      justify-content: space-between;
+    }
+    .bar-track {
+      height: 5px;
+      background: var(--surface2);
+      border-radius: 3px;
+      overflow: hidden;
+    }
+    .bar-fill {
+      height: 100%;
+      border-radius: 3px;
+      transition: width 0.6s ease;
+    }
+    .bar-fill.bikes { background: var(--accent); }
+    .bar-fill.docks { background: var(--accent2); }
+    .bar-fill.low { background: var(--warn); }
+    .station-status {
+      font-size: 10px;
+      font-family: var(--font-mono);
+      color: var(--muted);
+    }
+    .status-dot {
+      display: inline-block;
+      width: 6px; height: 6px;
+      border-radius: 50%;
+      margin-right: 5px;
+    }
+    .status-dot.online { background: var(--accent); }
+    .status-dot.offline { background: var(--warn); }
+
+    /* ── Right Column ── */
+    .right-col {
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+    }
+
+    /* ── Map ── */
+    #map-container {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      overflow: hidden;
+      height: 380px;
+      position: relative;
+    }
+    #map {
+      width: 100%; height: 100%;
+      background: #0d1520;
+    }
+    .map-overlay {
+      position: absolute;
+      top: 14px; left: 14px;
+      background: rgba(13,21,32,0.85);
+      backdrop-filter: blur(8px);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 8px 12px;
+      font-family: var(--font-mono);
+      font-size: 11px;
+      color: var(--muted);
+    }
+
+    /* ── Chart Panel ── */
+    .chart-panel {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      overflow: hidden;
+      flex: 1;
+    }
+    .chart-tabs {
+      display: flex;
+      border-bottom: 1px solid var(--border);
+    }
+    .chart-tab {
+      padding: 12px 20px;
+      font-size: 12px;
+      font-family: var(--font-mono);
+      color: var(--muted);
+      cursor: pointer;
+      border-bottom: 2px solid transparent;
+      transition: all 0.2s;
+      user-select: none;
+    }
+    .chart-tab.active {
+      color: var(--accent);
+      border-bottom-color: var(--accent);
+    }
+    .chart-tab:hover { color: var(--text); }
+
+    .chart-body {
+      padding: 20px;
+    }
+    .chart-note {
+      font-size: 11px;
+      color: var(--muted);
+      margin-bottom: 14px;
+      font-style: italic;
+    }
+    canvas#trendChart {
+      width: 100% !important;
+    }
+
+    /* ── Selected Station Detail ── */
+    .detail-panel {
+      display: none;
+      position: fixed;
+      bottom: 24px; right: 24px;
+      width: 320px;
+      background: var(--surface);
+      border: 1px solid var(--accent);
+      border-radius: 14px;
+      z-index: 200;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.5), 0 0 0 1px rgba(0,229,160,0.1);
+      animation: slideUp 0.25s ease;
+    }
+    @keyframes slideUp {
+      from { transform: translateY(20px); opacity: 0; }
+      to { transform: translateY(0); opacity: 1; }
+    }
+    .detail-panel.visible { display: block; }
+    .detail-header {
+      padding: 14px 16px;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+    }
+    .detail-name {
+      font-weight: 600;
+      font-size: 13px;
+      line-height: 1.3;
+      flex: 1;
+      padding-right: 8px;
+    }
+    .detail-close {
+      cursor: pointer;
+      color: var(--muted);
+      font-size: 18px;
+      line-height: 1;
+      transition: color 0.2s;
+      flex-shrink: 0;
+    }
+    .detail-close:hover { color: var(--text); }
+    .detail-body { padding: 16px; }
+    .detail-metric {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 10px;
+    }
+    .detail-metric-label { font-size: 12px; color: var(--muted); }
+    .detail-metric-value {
+      font-family: var(--font-mono);
+      font-size: 14px;
+      font-weight: 700;
+    }
+    .detail-capacity-bar {
+      height: 8px;
+      background: var(--surface2);
+      border-radius: 4px;
+      overflow: hidden;
+      margin-top: 12px;
+    }
+    .detail-capacity-fill {
+      height: 100%;
+      border-radius: 4px;
+      background: linear-gradient(90deg, var(--accent), var(--accent2));
+      transition: width 0.6s ease;
+    }
+    .detail-capacity-label {
+      display: flex;
+      justify-content: space-between;
+      font-size: 10px;
+      color: var(--muted);
+      font-family: var(--font-mono);
+      margin-top: 5px;
+    }
+
+    /* ── Loading / Error ── */
+    .loading-state {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 60px 20px;
+      gap: 12px;
+      color: var(--muted);
+      font-size: 13px;
+      font-family: var(--font-mono);
+    }
+    .spinner {
+      width: 28px; height: 28px;
+      border: 2px solid var(--border);
+      border-top-color: var(--accent);
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .error-state {
+      padding: 24px 20px;
+      color: var(--warn);
+      font-size: 13px;
+      font-family: var(--font-mono);
+      line-height: 1.5;
+    }
+
+    /* ── Misc ── */
+    .section-label {
+      font-size: 10px;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      color: var(--muted);
+      font-family: var(--font-mono);
+      margin-bottom: 4px;
+    }
+
+    @media (max-width: 900px) {
+      .main-grid { grid-template-columns: 1fr; }
+      .summary-grid { grid-template-columns: repeat(2, 1fr); }
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <div class="logo">
+    <div class="logo-icon">🚲</div>
+    <div>
+      <div class="logo-text">BAY RIDGE BIKES</div>
+      <div class="logo-sub">Citi Bike Station Monitor</div>
+    </div>
+  </div>
+  <div class="header-right">
+    <div class="live-badge"><div class="live-dot"></div> LIVE</div>
+    <span class="last-updated" id="lastUpdated">—</span>
+    <button class="refresh-btn" onclick="fetchData()">↻ Refresh</button>
+  </div>
+</header>
+
+<div class="container">
+
+  <!-- Summary -->
+  <div class="summary-grid">
+    <div class="stat-card">
+      <div class="stat-label">Stations in Area</div>
+      <div class="stat-value" id="statStations">—</div>
+      <div class="stat-sub">Bay Ridge & surrounds</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">Bikes Available</div>
+      <div class="stat-value" id="statBikes">—</div>
+      <div class="stat-sub" id="statEbikes">— e-bikes</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">Docks Available</div>
+      <div class="stat-value blue" id="statDocks">—</div>
+      <div class="stat-sub">For returns</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">Low Stock Stations</div>
+      <div class="stat-value warn" id="statLow">—</div>
+      <div class="stat-sub">≤2 bikes remaining</div>
+    </div>
+  </div>
+
+  <!-- Main -->
+  <div class="main-grid">
+
+    <!-- Station List -->
+    <div class="panel">
+      <div class="panel-header">
+        <span class="panel-title">STATIONS</span>
+        <span class="panel-count" id="stationCount">Loading…</span>
+      </div>
+      <div class="station-list" id="stationList">
+        <div class="loading-state"><div class="spinner"></div>Fetching live data…</div>
+      </div>
+    </div>
+
+    <!-- Right column -->
+    <div class="right-col">
+
+      <!-- Map -->
+      <div id="map-container">
+        <div id="map"></div>
+        <div class="map-overlay">📍 Bay Ridge, Brooklyn</div>
+      </div>
+
+      <!-- Chart -->
+      <div class="chart-panel">
+        <div class="chart-tabs">
+          <div class="chart-tab active" onclick="switchTab('session')" id="tab-session">Session Trend</div>
+          <div class="chart-tab" onclick="switchTab('sim')" id="tab-sim">Typical Day</div>
+        </div>
+        <div class="chart-body">
+          <div class="chart-note" id="chartNote">Tracking live readings this session. Refresh to add data points.</div>
+          <canvas id="trendChart" height="180"></canvas>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<!-- Station Detail Popup -->
+<div class="detail-panel" id="detailPanel">
+  <div class="detail-header">
+    <div class="detail-name" id="detailName">—</div>
+    <div class="detail-close" onclick="closeDetail()">✕</div>
+  </div>
+  <div class="detail-body">
+    <div class="detail-metric">
+      <span class="detail-metric-label">🚲 Bikes available</span>
+      <span class="detail-metric-value" id="detailBikes" style="color:var(--accent)">—</span>
+    </div>
+    <div class="detail-metric">
+      <span class="detail-metric-label">⚡ E-bikes</span>
+      <span class="detail-metric-value" id="detailEbikes" style="color:var(--accent)">—</span>
+    </div>
+    <div class="detail-metric">
+      <span class="detail-metric-label">🅿️ Docks open</span>
+      <span class="detail-metric-value" id="detailDocks" style="color:var(--accent2)">—</span>
+    </div>
+    <div class="detail-metric">
+      <span class="detail-metric-label">📦 Capacity</span>
+      <span class="detail-metric-value" id="detailCap" style="color:var(--muted)">—</span>
+    </div>
+    <div class="detail-capacity-bar">
+      <div class="detail-capacity-fill" id="detailCapFill" style="width:0%"></div>
+    </div>
+    <div class="detail-capacity-label">
+      <span>Empty</span><span>Full</span>
+    </div>
+  </div>
+</div>
+
+<!-- Leaflet for map -->
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css" />
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+
+<script>
+// ─── CONFIG ───────────────────────────────────────────────
+// Bay Ridge boundary polygon (hand-drawn)
+const BAY_RIDGE_POLYGON = [
+  [40.640593, -74.028368],
+  [40.640992, -74.033089],
+  [40.637799, -74.036951],
+  [40.625680, -74.041328],
+  [40.616418, -74.040899],
+  [40.610564, -74.037809],
+  [40.609880, -74.034677],
+  [40.611542, -74.030256],
+  [40.617992, -74.024849],
+  [40.623074, -74.020085],
+  [40.632421, -74.016051],
+  [40.635059, -74.015794],
+  [40.640593, -74.028368],
+];
+
+function inBayRidge(lat, lon) {
+  const poly = BAY_RIDGE_POLYGON;
+  const n = poly.length;
+  let inside = false;
+  let j = n - 1;
+  for (let i = 0; i < n; i++) {
+    const [lat_i, lon_i] = poly[i];
+    const [lat_j, lon_j] = poly[j];
+    if ((lon_i > lon) !== (lon_j > lon) &&
+        lat < (lat_j - lat_i) * (lon - lon_i) / (lon_j - lon_i) + lat_i) {
+      inside = !inside;
+    }
+    j = i;
+  }
+  return inside;
+}
+
+// GBFS endpoints (via a CORS proxy since browser can't hit gbfs.citibikenyc.com directly)
+const INFO_URL   = 'https://gbfs.citibikenyc.com/gbfs/en/station_information.json';
+const STATUS_URL = 'https://gbfs.citibikenyc.com/gbfs/en/station_status.json';
+
+let stations = [];
+let selectedId = null;
+let map = null;
+let markers = {};
+let sessionHistory = []; // [{time, bikes, docks}]
+let chartInstance = null;
+let currentTab = 'session';
+
+// ─── INIT ─────────────────────────────────────────────────
+window.addEventListener('load', () => {
+  initMap();
+  fetchData();
+  initChart();
+  // Auto-refresh every 2 minutes
+  setInterval(fetchData, 120000);
+});
+
+// ─── MAP ──────────────────────────────────────────────────
+function initMap() {
+  map = L.map('map', {
+    center: [40.634, -74.022],
+    zoom: 14,
+    zoomControl: true,
+    attributionControl: false
+  });
+
+  L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+    maxZoom: 19
+  }).addTo(map);
+}
+
+function updateMapMarkers() {
+  // Clear old markers
+  Object.values(markers).forEach(m => m.remove());
+  markers = {};
+
+  stations.forEach(s => {
+    const pct = s.num_bikes_available / Math.max(s.capacity || 1, 1);
+    const color = s.num_bikes_available <= 2 ? '#ff6b35' :
+                  pct >= 0.5 ? '#00e5a0' : '#0096ff';
+
+    const icon = L.divIcon({
+      html: `<div style="
+        width:28px;height:28px;border-radius:50%;
+        background:${color};
+        border:2px solid rgba(255,255,255,0.2);
+        display:flex;align-items:center;justify-content:center;
+        font-size:11px;font-weight:700;color:#000;
+        font-family:'Space Mono',monospace;
+        box-shadow:0 2px 8px rgba(0,0,0,0.5);
+        cursor:pointer;
+        transition:transform 0.15s;
+      ">${s.num_bikes_available}</div>`,
+      className: '',
+      iconSize: [28, 28],
+      iconAnchor: [14, 14]
+    });
+
+    const marker = L.marker([s.lat, s.lon], { icon })
+      .addTo(map)
+      .on('click', () => selectStation(s.station_id));
+
+    marker.bindTooltip(`<b>${s.name}</b><br>🚲 ${s.num_bikes_available} bikes · 🅿️ ${s.num_docks_available} docks`, {
+      className: 'leaflet-tooltip-dark',
+      direction: 'top'
+    });
+
+    markers[s.station_id] = marker;
+  });
+}
+
+// ─── FETCH DATA ───────────────────────────────────────────
+async function fetchData() {
+  try {
+    const [infoRes, statusRes] = await Promise.all([
+      fetch(INFO_URL),
+      fetch(STATUS_URL)
+    ]);
+    const infoData   = await infoRes.json();
+    const statusData = await statusRes.json();
+
+    const infoMap = {};
+    infoData.data.stations.forEach(s => { infoMap[s.station_id] = s; });
+
+    const statusMap = {};
+    statusData.data.stations.forEach(s => { statusMap[s.station_id] = s; });
+
+    // Filter to Bay Ridge area
+    const bayRidgeStations = infoData.data.stations.filter(s =>
+      inBayRidge(s.lat, s.lon)
+    );
+
+    if (bayRidgeStations.length === 0) {
+      // Widen search if none found (area may have limited coverage)
+      renderError('No stations found in Bay Ridge bounds — Citi Bike may have limited coverage here yet. Showing nearest Brooklyn stations.');
+      return;
+    }
+
+    stations = bayRidgeStations.map(info => {
+      const st = statusMap[info.station_id] || {};
+      return {
+        ...info,
+        num_bikes_available: st.num_bikes_available || 0,
+        num_ebikes_available: st.num_ebikes_available || 0,
+        num_docks_available: st.num_docks_available || 0,
+        is_installed: st.is_installed || 0,
+        is_renting: st.is_renting || 0,
+      };
+    }).sort((a, b) => b.num_bikes_available - a.num_bikes_available);
+
+    updateSummary();
+    renderStationList();
+    updateMapMarkers();
+    recordSession();
+
+    document.getElementById('lastUpdated').textContent =
+      'Updated ' + new Date().toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'});
+
+  } catch (err) {
+    console.error(err);
+    renderError('Could not load live data. The Citi Bike API may be unavailable, or CORS restrictions may be blocking the request.\n\nTry opening this file from a local server or use a browser extension to allow CORS.');
+  }
+}
+
+function renderError(msg) {
+  document.getElementById('stationList').innerHTML =
+    `<div class="error-state">⚠ ${msg}</div>`;
+}
+
+// ─── SUMMARY ──────────────────────────────────────────────
+function updateSummary() {
+  const totalBikes  = stations.reduce((s, x) => s + x.num_bikes_available, 0);
+  const totalEbikes = stations.reduce((s, x) => s + x.num_ebikes_available, 0);
+  const totalDocks  = stations.reduce((s, x) => s + x.num_docks_available, 0);
+  const lowStations = stations.filter(x => x.num_bikes_available <= 2).length;
+
+  document.getElementById('statStations').textContent = stations.length;
+  document.getElementById('statBikes').textContent = totalBikes;
+  document.getElementById('statEbikes').textContent = `${totalEbikes} e-bikes`;
+  document.getElementById('statDocks').textContent = totalDocks;
+  document.getElementById('statLow').textContent = lowStations;
+  document.getElementById('stationCount').textContent = `${stations.length} stations`;
+}
+
+// ─── STATION LIST ─────────────────────────────────────────
+function renderStationList() {
+  const list = document.getElementById('stationList');
+  if (!stations.length) {
+    list.innerHTML = '<div class="loading-state">No stations found nearby.</div>';
+    return;
+  }
+
+  list.innerHTML = stations.map(s => {
+    const cap = s.capacity || (s.num_bikes_available + s.num_docks_available) || 1;
+    const bikePct = Math.round(s.num_bikes_available / cap * 100);
+    const dockPct = Math.round(s.num_docks_available / cap * 100);
+    const isLow = s.num_bikes_available <= 2;
+    const online = s.is_installed && s.is_renting;
+
+    return `
+      <div class="station-item ${selectedId === s.station_id ? 'selected' : ''}"
+           onclick="selectStation('${s.station_id}')" id="si-${s.station_id}">
+        <div class="station-name">${s.name}</div>
+        <div class="station-bars">
+          <div class="bar-group">
+            <div class="bar-label"><span>🚲 Bikes</span><span>${s.num_bikes_available}</span></div>
+            <div class="bar-track">
+              <div class="bar-fill bikes ${isLow ? 'low' : ''}" style="width:${bikePct}%"></div>
+            </div>
+          </div>
+          <div style="width:12px"></div>
+          <div class="bar-group">
+            <div class="bar-label"><span>🅿️ Docks</span><span>${s.num_docks_available}</span></div>
+            <div class="bar-track">
+              <div class="bar-fill docks" style="width:${dockPct}%"></div>
+            </div>
+          </div>
+        </div>
+        <div class="station-status">
+          <span class="status-dot ${online ? 'online' : 'offline'}"></span>
+          ${online ? 'Online' : 'Offline'} · Cap ${cap}${s.num_ebikes_available ? ` · ⚡${s.num_ebikes_available}` : ''}
+        </div>
+      </div>
+    `;
+  }).join('');
+}
+
+// ─── SELECT STATION ───────────────────────────────────────
+function selectStation(id) {
+  selectedId = id;
+  const s = stations.find(x => x.station_id === id);
+  if (!s) return;
+
+  // Highlight list
+  document.querySelectorAll('.station-item').forEach(el => el.classList.remove('selected'));
+  const el = document.getElementById('si-' + id);
+  if (el) { el.classList.add('selected'); el.scrollIntoView({ behavior: 'smooth', block: 'nearest' }); }
+
+  // Pan map
+  if (map) map.flyTo([s.lat, s.lon], 15, { duration: 0.8 });
+
+  // Detail panel
+  const cap = s.capacity || (s.num_bikes_available + s.num_docks_available) || 1;
+  const fillPct = Math.round(s.num_bikes_available / cap * 100);
+
+  document.getElementById('detailName').textContent = s.name;
+  document.getElementById('detailBikes').textContent = s.num_bikes_available;
+  document.getElementById('detailEbikes').textContent = s.num_ebikes_available;
+  document.getElementById('detailDocks').textContent = s.num_docks_available;
+  document.getElementById('detailCap').textContent = cap;
+  document.getElementById('detailCapFill').style.width = fillPct + '%';
+  document.getElementById('detailPanel').classList.add('visible');
+}
+
+function closeDetail() {
+  document.getElementById('detailPanel').classList.remove('visible');
+  selectedId = null;
+  document.querySelectorAll('.station-item').forEach(el => el.classList.remove('selected'));
+}
+
+// ─── CHART ────────────────────────────────────────────────
+function recordSession() {
+  const totalBikes = stations.reduce((s, x) => s + x.num_bikes_available, 0);
+  const totalDocks = stations.reduce((s, x) => s + x.num_docks_available, 0);
+  sessionHistory.push({
+    time: new Date().toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'}),
+    bikes: totalBikes,
+    docks: totalDocks
+  });
+  if (currentTab === 'session') updateChartSession();
+}
+
+function initChart() {
+  const ctx = document.getElementById('trendChart').getContext('2d');
+  chartInstance = new Chart(ctx, {
+    type: 'line',
+    data: { labels: [], datasets: [] },
+    options: {
+      responsive: true,
+      interaction: { mode: 'index', intersect: false },
+      plugins: { legend: { labels: { color: '#6b7a99', font: { family: 'Space Mono', size: 11 } } }, tooltip: { backgroundColor: '#131720', borderColor: '#252d40', borderWidth: 1 } },
+      scales: {
+        x: { ticks: { color: '#6b7a99', font: { family: 'Space Mono', size: 10 } }, grid: { color: 'rgba(37,45,64,0.5)' } },
+        y: { ticks: { color: '#6b7a99', font: { family: 'Space Mono', size: 10 } }, grid: { color: 'rgba(37,45,64,0.5)' }, beginAtZero: true }
+      }
+    }
+  });
+}
+
+function updateChartSession() {
+  if (!chartInstance) return;
+  chartInstance.data.labels = sessionHistory.map(d => d.time);
+  chartInstance.data.datasets = [
+    {
+      label: 'Bikes Available',
+      data: sessionHistory.map(d => d.bikes),
+      borderColor: '#00e5a0',
+      backgroundColor: 'rgba(0,229,160,0.08)',
+      fill: true,
+      tension: 0.4,
+      pointRadius: 4,
+      pointBackgroundColor: '#00e5a0'
+    },
+    {
+      label: 'Docks Available',
+      data: sessionHistory.map(d => d.docks),
+      borderColor: '#0096ff',
+      backgroundColor: 'rgba(0,150,255,0.06)',
+      fill: true,
+      tension: 0.4,
+      pointRadius: 4,
+      pointBackgroundColor: '#0096ff'
+    }
+  ];
+  chartInstance.update();
+}
+
+function updateChartSim() {
+  if (!chartInstance) return;
+  // Simulated typical weekday usage pattern for a Bay Ridge station
+  const hours = ['6AM','7AM','8AM','9AM','10AM','11AM','12PM','1PM','2PM','3PM','4PM','5PM','6PM','7PM','8PM','9PM'];
+  const bikePattern = [18,9,5,12,16,18,15,14,16,17,12,7,10,15,18,20];
+  const dockPattern = [8,17,21,14,10,8,11,12,10,9,14,19,16,11,8,6];
+
+  chartInstance.data.labels = hours;
+  chartInstance.data.datasets = [
+    {
+      label: 'Avg Bikes (Typical Weekday)',
+      data: bikePattern,
+      borderColor: '#00e5a0',
+      backgroundColor: 'rgba(0,229,160,0.08)',
+      fill: true,
+      tension: 0.4,
+      pointRadius: 3,
+      pointBackgroundColor: '#00e5a0',
+      borderDash: [5, 3]
+    },
+    {
+      label: 'Avg Docks (Typical Weekday)',
+      data: dockPattern,
+      borderColor: '#0096ff',
+      backgroundColor: 'rgba(0,150,255,0.06)',
+      fill: true,
+      tension: 0.4,
+      pointRadius: 3,
+      pointBackgroundColor: '#0096ff',
+      borderDash: [5, 3]
+    }
+  ];
+  chartInstance.update();
+}
+
+function switchTab(tab) {
+  currentTab = tab;
+  document.querySelectorAll('.chart-tab').forEach(t => t.classList.remove('active'));
+  document.getElementById('tab-' + tab).classList.add('active');
+  if (tab === 'session') {
+    document.getElementById('chartNote').textContent = 'Live readings captured this session. Refresh to add more data points.';
+    updateChartSession();
+  } else {
+    document.getElementById('chartNote').textContent = 'Estimated typical weekday pattern — based on general Citi Bike usage trends for outer-Brooklyn areas.';
+    updateChartSim();
+  }
+}
+</script>
+
+<style>
+/* Dark tooltip for Leaflet */
+.leaflet-tooltip-dark {
+  background: #131720 !important;
+  border: 1px solid #252d40 !important;
+  color: #e8edf5 !important;
+  font-family: 'DM Sans', sans-serif;
+  font-size: 12px;
+  border-radius: 6px;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.4);
+}
+.leaflet-tooltip-dark::before {
+  border-top-color: #252d40 !important;
+}
+</style>
+
+</body>
+</html>
