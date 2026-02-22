@@ -819,7 +819,7 @@ body{background:var(--bg);color:var(--ink);font-family:var(--font-body);min-heig
 // SUPABASE CONFIG
 // ═══════════════════════════════════════════
 const SUPABASE_URL = 'https://vqichsthcvkdcnekfggr.supabase.co';
-const SUPABASE_ANON_KEY = 'PASTE_YOUR_PUBLISHABLE_KEY_HERE';
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZxaWNoc3RoY3ZrZGNuZWtmZ2dyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzE3MjE5NzQsImV4cCI6MjA4NzI5Nzk3NH0.DIPu7nZu53c9RzGBMfO4UyfnOGF-3wWk-Dq07fNnJa4';
 
 async function sbGet(table, params) {
   const url = new URL(`${SUPABASE_URL}/rest/v1/${table}`);
