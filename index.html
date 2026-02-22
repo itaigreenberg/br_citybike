@@ -454,56 +454,24 @@ body{background:var(--bg);color:var(--ink);font-family:var(--font-body);min-heig
 }
 @keyframes spin{to{transform:rotate(360deg)}}
 
-
 /* ── ACTIVITY FEED ── */
-.activity-grid{
-  display:grid;grid-template-columns:1fr 1fr;
-}
+.activity-grid{display:grid;grid-template-columns:1fr 1fr}
 .activity-col{padding:16px 20px}
 .activity-col:first-child{border-right:1px solid var(--rule)}
-.activity-col-title{
-  font-family:var(--font-mono);font-size:10px;
-  letter-spacing:0.1em;text-transform:uppercase;
-  color:var(--muted);margin-bottom:12px;
-}
-.activity-item{
-  display:flex;align-items:center;gap:10px;
-  padding:6px 0;border-bottom:1px solid var(--rule);
-  font-size:12px;
-}
+.activity-col-title{font-family:var(--font-mono);font-size:10px;letter-spacing:0.1em;text-transform:uppercase;color:var(--muted);margin-bottom:12px}
+.activity-item{display:flex;align-items:center;gap:10px;padding:6px 0;border-bottom:1px solid var(--rule);font-size:12px}
 .activity-item:last-child{border-bottom:none}
 .activity-icon{font-size:14px;flex-shrink:0}
 .activity-station{flex:1;color:var(--ink2);line-height:1.3}
-.activity-count{
-  font-family:var(--font-mono);font-size:13px;
-  font-weight:600;flex-shrink:0;
-}
+.activity-count{font-family:var(--font-mono);font-size:13px;font-weight:600;flex-shrink:0}
 .activity-count.dep{color:var(--accent2)}
 .activity-count.arr{color:var(--green)}
-.activity-time{
-  font-family:var(--font-mono);font-size:10px;
-  color:var(--muted);flex-shrink:0;
-}
-.activity-empty{
-  padding:20px;text-align:center;
-  font-family:var(--font-mono);font-size:11px;
-  color:var(--muted);
-}
-.network-health{
-  display:flex;align-items:center;gap:16px;
-  padding:12px 20px;
-  border-top:1px solid var(--rule);
-  background:var(--bg);
-  font-size:12px;color:var(--ink2);
-}
-.health-badge{
-  font-family:var(--font-mono);font-size:11px;
-  font-weight:600;padding:4px 10px;border-radius:2px;
-}
+.activity-empty{padding:20px;text-align:center;font-family:var(--font-mono);font-size:11px;color:var(--muted)}
+.network-health{display:flex;align-items:center;gap:16px;padding:12px 20px;border-top:1px solid var(--rule);background:var(--bg);font-size:12px;color:var(--ink2)}
+.health-badge{font-family:var(--font-mono);font-size:11px;font-weight:600;padding:4px 10px;border-radius:2px}
 .health-badge.healthy{background:var(--green-light);color:var(--green)}
 .health-badge.moderate{background:var(--amber-light);color:var(--amber)}
 .health-badge.busy{background:var(--accent2-light);color:var(--accent2)}
-
 /* responsive */
 @media(max-width:960px){
   .main-grid{grid-template-columns:1fr}
@@ -576,7 +544,7 @@ body{background:var(--bg);color:var(--ink);font-family:var(--font-body);min-heig
       <div class="stat-block-bar"></div>
     </div>
     <div class="stat-block">
-      <div class="stat-block-label">Trips Last 2 Hours</div>
+      <div class="stat-block-label">Trips Last 2h</div>
       <div class="stat-block-value" id="s-trips-2h" style="color:var(--amber)">—</div>
       <div class="stat-block-sub" id="s-trips-2h-sub">From Supabase</div>
       <div class="stat-block-bar"></div>
@@ -584,12 +552,12 @@ body{background:var(--bg);color:var(--ink);font-family:var(--font-body);min-heig
   </div>
 
   <!-- Recent Activity Panel -->
-  <div class="panel" style="margin-bottom:20px" id="activity-panel">
+  <div class="panel" style="margin-bottom:20px">
     <div class="panel-head">
       <span class="panel-head-title">Recent Activity</span>
       <span class="panel-head-meta" id="activity-meta">Loading from Supabase…</span>
     </div>
-    <div id="activity-body" style="padding:0">
+    <div id="activity-body">
       <div class="load-state"><div class="spinner"></div>Fetching recent trips…</div>
     </div>
   </div>
@@ -814,7 +782,6 @@ body{background:var(--bg);color:var(--ink);font-family:var(--font-body);min-heig
 <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
 <script>
-
 // ═══════════════════════════════════════════
 // SUPABASE CONFIG
 // ═══════════════════════════════════════════
@@ -854,11 +821,13 @@ const HISTORICAL = {
       hours:    [5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22],
       outbound: [49,47,50,43,41,46,42,37,38,32,33,35,35,30,28,27,30,27],
       inbound:  [22,23,27,26,31,28,27,27,31,32,35,42,48,40,42,44,40,43],
+      internal: [29,31,23,31,28,26,32,35,31,36,32,29,26,30,30,29,30,30],
     },
     weekend: {
       hours:    [5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22],
       outbound: [38,35,36,30,28,34,36,32,30,28,30,28,27,26,24,23,24,22],
       inbound:  [28,30,32,35,38,34,30,32,35,36,36,38,40,42,46,48,44,46],
+      internal: [34,35,32,35,34,32,34,36,35,36,34,34,33,32,30,29,32,32],
     }
   },
 
@@ -916,19 +885,11 @@ const ORIGINAL_STATIONS = new Set([
 
 // Bay Ridge polygon
 const BAY_RIDGE_POLYGON = [
-  [40.642136, -74.028204],
-  [40.642574, -74.033397],
-  [40.639062, -74.037645],
-  [40.625731, -74.042459],
-  [40.615543, -74.041988],
-  [40.609104, -74.038589],
-  [40.608351, -74.035143],
-  [40.610179, -74.03028],
-  [40.617274, -74.024333],
-  [40.622865, -74.019092],
-  [40.633146, -74.014655],
-  [40.636048, -74.014372],
-  [40.642136, -74.028204],
+  [40.640593,-74.028368],[40.640992,-74.033089],[40.637799,-74.036951],
+  [40.625680,-74.041328],[40.616418,-74.040899],[40.610564,-74.037809],
+  [40.609880,-74.034677],[40.611542,-74.030256],[40.617992,-74.024849],
+  [40.623074,-74.020085],[40.632421,-74.016051],[40.635059,-74.015794],
+  [40.640593,-74.028368],
 ];
 
 function inBayRidge(lat,lon){
@@ -942,19 +903,17 @@ function inBayRidge(lat,lon){
   return inside;
 }
 
-
 // ═══════════════════════════════════════════
 // SUPABASE REAL-TIME ACTIVITY
 // ═══════════════════════════════════════════
 async function fetchRecentActivity() {
   try {
     const now = new Date();
-    const oneHourAgo  = new Date(now - 60 * 60 * 1000).toISOString();
-    const twoHoursAgo = new Date(now - 2 * 60 * 60 * 1000).toISOString();
+    const oneHourAgo  = new Date(now - 60*60*1000).toISOString();
+    const twoHoursAgo = new Date(now - 2*60*60*1000).toISOString();
 
-    // Fetch last 2 hours of inferred trips (non-rebalance only)
     const trips = await sbGet('inferred_trips', {
-      'select': 'detected_at,station_name,trips_departed,trips_arrived,delta',
+      'select': 'detected_at,station_name,trips_departed,trips_arrived',
       'detected_at': `gte.${twoHoursAgo}`,
       'is_rebalance': 'eq.false',
       'order': 'detected_at.desc',
@@ -965,64 +924,54 @@ async function fetchRecentActivity() {
       document.getElementById('activity-body').innerHTML =
         '<div class="activity-empty">No trip activity recorded yet — check back after a few more polling cycles.</div>';
       document.getElementById('s-trips-1h').textContent = '0';
+      document.getElementById('s-trips-1h-sub').textContent = 'No data yet';
       document.getElementById('s-trips-2h').textContent = '0';
       return;
     }
 
-    // Compute totals
     const lastHour = trips.filter(t => new Date(t.detected_at) >= new Date(oneHourAgo));
-    const dep1h = lastHour.reduce((s,t) => s + (t.trips_departed||0), 0);
-    const arr1h = lastHour.reduce((s,t) => s + (t.trips_arrived||0), 0);
-    const dep2h = trips.reduce((s,t) => s + (t.trips_departed||0), 0);
-    const arr2h = trips.reduce((s,t) => s + (t.trips_arrived||0), 0);
+    const dep1h = lastHour.reduce((s,t) => s+(t.trips_departed||0), 0);
+    const arr1h = lastHour.reduce((s,t) => s+(t.trips_arrived||0), 0);
+    const dep2h = trips.reduce((s,t) => s+(t.trips_departed||0), 0);
+    const arr2h = trips.reduce((s,t) => s+(t.trips_arrived||0), 0);
 
     document.getElementById('s-trips-1h').textContent = dep1h + arr1h;
     document.getElementById('s-trips-1h-sub').textContent = `${dep1h} out · ${arr1h} in`;
     document.getElementById('s-trips-2h').textContent = dep2h + arr2h;
     document.getElementById('s-trips-2h-sub').textContent = `${dep2h} out · ${arr2h} in`;
 
-    // Network health badge
-    const rate = (dep1h + arr1h);
+    const rate = dep1h + arr1h;
     const healthLabel = rate > 30 ? 'BUSY' : rate > 10 ? 'ACTIVE' : 'QUIET';
     const healthClass = rate > 30 ? 'busy' : rate > 10 ? 'moderate' : 'healthy';
 
-    // Aggregate by station for last 2 hours
     const byStation = {};
     trips.forEach(t => {
-      if (!byStation[t.station_name]) byStation[t.station_name] = {dep:0, arr:0, last:t.detected_at};
+      if (!byStation[t.station_name]) byStation[t.station_name] = {dep:0,arr:0};
       byStation[t.station_name].dep += t.trips_departed||0;
       byStation[t.station_name].arr += t.trips_arrived||0;
     });
 
-    // Top departures and arrivals
-    const topDep = Object.entries(byStation)
-      .filter(([,v]) => v.dep > 0)
-      .sort((a,b) => b[1].dep - a[1].dep)
-      .slice(0, 8);
+    const topDep = Object.entries(byStation).filter(([,v])=>v.dep>0)
+      .sort((a,b)=>b[1].dep-a[1].dep).slice(0,8);
+    const topArr = Object.entries(byStation).filter(([,v])=>v.arr>0)
+      .sort((a,b)=>b[1].arr-a[1].arr).slice(0,8);
 
-    const topArr = Object.entries(byStation)
-      .filter(([,v]) => v.arr > 0)
-      .sort((a,b) => b[1].arr - a[1].arr)
-      .slice(0, 8);
-
-    const formatTime = iso => {
-      const d = new Date(iso);
-      return d.toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'});
-    };
-
-    const depHTML = topDep.length ? topDep.map(([name, v]) => `
+    const depHTML = topDep.length ? topDep.map(([name,v])=>`
       <div class="activity-item">
         <span class="activity-icon">🚲</span>
         <span class="activity-station">${name}</span>
         <span class="activity-count dep">-${v.dep}</span>
-      </div>`).join('') : '<div class="activity-empty">No departures recorded yet</div>';
+      </div>`).join('') : '<div class="activity-empty">No departures yet</div>';
 
-    const arrHTML = topArr.length ? topArr.map(([name, v]) => `
+    const arrHTML = topArr.length ? topArr.map(([name,v])=>`
       <div class="activity-item">
         <span class="activity-icon">🅿️</span>
         <span class="activity-station">${name}</span>
         <span class="activity-count arr">+${v.arr}</span>
-      </div>`).join('') : '<div class="activity-empty">No arrivals recorded yet</div>';
+      </div>`).join('') : '<div class="activity-empty">No arrivals yet</div>';
+
+    const lastTime = new Date(trips[0].detected_at)
+      .toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'});
 
     document.getElementById('activity-body').innerHTML = `
       <div class="activity-grid">
@@ -1037,12 +986,11 @@ async function fetchRecentActivity() {
       </div>
       <div class="network-health">
         <span class="health-badge ${healthClass}">${healthLabel}</span>
-        <span>${dep2h} departures and ${arr2h} arrivals recorded across Bay Ridge in the last 2 hours</span>
-        <span style="margin-left:auto;font-family:var(--font-mono);font-size:11px;color:var(--muted)">via Supabase · updates every 5 min</span>
+        <span>${dep2h} departures · ${arr2h} arrivals across Bay Ridge in the last 2 hours</span>
+        <span style="margin-left:auto;font-family:var(--font-mono);font-size:11px;color:var(--muted)">via Supabase · updates every 10 min</span>
       </div>`;
 
-    document.getElementById('activity-meta').textContent =
-      `Last trip data: ${formatTime(trips[0].detected_at)}`;
+    document.getElementById('activity-meta').textContent = `Last trip data: ${lastTime}`;
 
   } catch(e) {
     console.error('Supabase fetch failed:', e);
@@ -1066,7 +1014,7 @@ window.addEventListener('load',()=>{
   fetchLiveData();
   fetchRecentActivity();
   setInterval(fetchLiveData, 120000);
-  setInterval(fetchRecentActivity, 300000);  // refresh activity every 5 min
+  setInterval(fetchRecentActivity, 600000); // every 10 min
   buildHistoricalTab();
   initTideChart();
   initRhythmChart();
@@ -1222,11 +1170,12 @@ function showTide(mode){
   tideChart.data.datasets=[
     {label:'Outbound %',data:d.outbound,borderColor:'#e8383b',backgroundColor:'rgba(232,56,59,.06)',fill:true,tension:.4,pointRadius:3,pointBackgroundColor:'#e8383b'},
     {label:'Inbound %',data:d.inbound,borderColor:'#0057b8',backgroundColor:'rgba(0,87,184,.06)',fill:true,tension:.4,pointRadius:3,pointBackgroundColor:'#0057b8'},
+    {label:'Internal %',data:d.internal,borderColor:'#00875a',backgroundColor:'rgba(0,135,90,.05)',fill:true,tension:.4,pointRadius:3,pointBackgroundColor:'#00875a'},
   ];
   tideChart.update();
   document.getElementById('tide-note').textContent=mode==='weekday'
-    ?'Outbound (leaving Bay Ridge) peaks at 7–8 AM. Inbound (returning) peaks at 5 PM — a clear commuter signature.'
-    :'Weekends show a flatter, more balanced pattern. Midday peaks suggest leisure and errand trips rather than commuting.';
+    ?'Outbound peaks at 7–8 AM, inbound peaks at 5 PM — a clear commuter signature. Internal trips stay remarkably flat all day, a steady background hum of local rides.'
+    :'Weekends show a flatter pattern across all three types. Internal trips run slightly higher — more people riding within the neighborhood for leisure and errands.';
 }
 
 // ── HISTORICAL TAB ────────────────────────────────────────
