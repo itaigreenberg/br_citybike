@@ -454,6 +454,56 @@ body{background:var(--bg);color:var(--ink);font-family:var(--font-body);min-heig
 }
 @keyframes spin{to{transform:rotate(360deg)}}
 
+
+/* ── ACTIVITY FEED ── */
+.activity-grid{
+  display:grid;grid-template-columns:1fr 1fr;
+}
+.activity-col{padding:16px 20px}
+.activity-col:first-child{border-right:1px solid var(--rule)}
+.activity-col-title{
+  font-family:var(--font-mono);font-size:10px;
+  letter-spacing:0.1em;text-transform:uppercase;
+  color:var(--muted);margin-bottom:12px;
+}
+.activity-item{
+  display:flex;align-items:center;gap:10px;
+  padding:6px 0;border-bottom:1px solid var(--rule);
+  font-size:12px;
+}
+.activity-item:last-child{border-bottom:none}
+.activity-icon{font-size:14px;flex-shrink:0}
+.activity-station{flex:1;color:var(--ink2);line-height:1.3}
+.activity-count{
+  font-family:var(--font-mono);font-size:13px;
+  font-weight:600;flex-shrink:0;
+}
+.activity-count.dep{color:var(--accent2)}
+.activity-count.arr{color:var(--green)}
+.activity-time{
+  font-family:var(--font-mono);font-size:10px;
+  color:var(--muted);flex-shrink:0;
+}
+.activity-empty{
+  padding:20px;text-align:center;
+  font-family:var(--font-mono);font-size:11px;
+  color:var(--muted);
+}
+.network-health{
+  display:flex;align-items:center;gap:16px;
+  padding:12px 20px;
+  border-top:1px solid var(--rule);
+  background:var(--bg);
+  font-size:12px;color:var(--ink2);
+}
+.health-badge{
+  font-family:var(--font-mono);font-size:11px;
+  font-weight:600;padding:4px 10px;border-radius:2px;
+}
+.health-badge.healthy{background:var(--green-light);color:var(--green)}
+.health-badge.moderate{background:var(--amber-light);color:var(--amber)}
+.health-badge.busy{background:var(--accent2-light);color:var(--accent2)}
+
 /* responsive */
 @media(max-width:960px){
   .main-grid{grid-template-columns:1fr}
@@ -494,7 +544,7 @@ body{background:var(--bg);color:var(--ink);font-family:var(--font-body);min-heig
 <div class="container">
 
   <!-- Stat Strip -->
-  <div class="stat-strip">
+  <div class="stat-strip" style="grid-template-columns:repeat(6,1fr)">
     <div class="stat-block">
       <div class="stat-block-label">Stations Online</div>
       <div class="stat-block-value" id="s-stations">—</div>
@@ -518,6 +568,29 @@ body{background:var(--bg);color:var(--ink);font-family:var(--font-body);min-heig
       <div class="stat-block-value red" id="s-low">—</div>
       <div class="stat-block-sub">Stations with ≤2 bikes</div>
       <div class="stat-block-bar"></div>
+    </div>
+    <div class="stat-block">
+      <div class="stat-block-label">Trips Last Hour</div>
+      <div class="stat-block-value" id="s-trips-1h" style="color:var(--amber)">—</div>
+      <div class="stat-block-sub" id="s-trips-1h-sub">Loading…</div>
+      <div class="stat-block-bar"></div>
+    </div>
+    <div class="stat-block">
+      <div class="stat-block-label">Trips Last 2 Hours</div>
+      <div class="stat-block-value" id="s-trips-2h" style="color:var(--amber)">—</div>
+      <div class="stat-block-sub" id="s-trips-2h-sub">From Supabase</div>
+      <div class="stat-block-bar"></div>
+    </div>
+  </div>
+
+  <!-- Recent Activity Panel -->
+  <div class="panel" style="margin-bottom:20px" id="activity-panel">
+    <div class="panel-head">
+      <span class="panel-head-title">Recent Activity</span>
+      <span class="panel-head-meta" id="activity-meta">Loading from Supabase…</span>
+    </div>
+    <div id="activity-body" style="padding:0">
+      <div class="load-state"><div class="spinner"></div>Fetching recent trips…</div>
     </div>
   </div>
 
@@ -741,6 +814,26 @@ body{background:var(--bg);color:var(--ink);font-family:var(--font-body);min-heig
 <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
 <script>
+
+// ═══════════════════════════════════════════
+// SUPABASE CONFIG
+// ═══════════════════════════════════════════
+const SUPABASE_URL = 'https://vqichsthcvkdcnekfggr.supabase.co';
+const SUPABASE_ANON_KEY = 'PASTE_YOUR_PUBLISHABLE_KEY_HERE';
+
+async function sbGet(table, params) {
+  const url = new URL(`${SUPABASE_URL}/rest/v1/${table}`);
+  Object.entries(params).forEach(([k,v]) => url.searchParams.set(k, v));
+  const r = await fetch(url, {
+    headers: {
+      'apikey': SUPABASE_ANON_KEY,
+      'Authorization': `Bearer ${SUPABASE_ANON_KEY}`
+    }
+  });
+  if (!r.ok) throw new Error(`Supabase error: ${r.status}`);
+  return r.json();
+}
+
 // ═══════════════════════════════════════════
 // HISTORICAL DATA (from Q3/Q4 2025 analysis)
 // ═══════════════════════════════════════════
@@ -849,6 +942,117 @@ function inBayRidge(lat,lon){
   return inside;
 }
 
+
+// ═══════════════════════════════════════════
+// SUPABASE REAL-TIME ACTIVITY
+// ═══════════════════════════════════════════
+async function fetchRecentActivity() {
+  try {
+    const now = new Date();
+    const oneHourAgo  = new Date(now - 60 * 60 * 1000).toISOString();
+    const twoHoursAgo = new Date(now - 2 * 60 * 60 * 1000).toISOString();
+
+    // Fetch last 2 hours of inferred trips (non-rebalance only)
+    const trips = await sbGet('inferred_trips', {
+      'select': 'detected_at,station_name,trips_departed,trips_arrived,delta',
+      'detected_at': `gte.${twoHoursAgo}`,
+      'is_rebalance': 'eq.false',
+      'order': 'detected_at.desc',
+      'limit': '200'
+    });
+
+    if (!trips.length) {
+      document.getElementById('activity-body').innerHTML =
+        '<div class="activity-empty">No trip activity recorded yet — check back after a few more polling cycles.</div>';
+      document.getElementById('s-trips-1h').textContent = '0';
+      document.getElementById('s-trips-2h').textContent = '0';
+      return;
+    }
+
+    // Compute totals
+    const lastHour = trips.filter(t => new Date(t.detected_at) >= new Date(oneHourAgo));
+    const dep1h = lastHour.reduce((s,t) => s + (t.trips_departed||0), 0);
+    const arr1h = lastHour.reduce((s,t) => s + (t.trips_arrived||0), 0);
+    const dep2h = trips.reduce((s,t) => s + (t.trips_departed||0), 0);
+    const arr2h = trips.reduce((s,t) => s + (t.trips_arrived||0), 0);
+
+    document.getElementById('s-trips-1h').textContent = dep1h + arr1h;
+    document.getElementById('s-trips-1h-sub').textContent = `${dep1h} out · ${arr1h} in`;
+    document.getElementById('s-trips-2h').textContent = dep2h + arr2h;
+    document.getElementById('s-trips-2h-sub').textContent = `${dep2h} out · ${arr2h} in`;
+
+    // Network health badge
+    const rate = (dep1h + arr1h);
+    const healthLabel = rate > 30 ? 'BUSY' : rate > 10 ? 'ACTIVE' : 'QUIET';
+    const healthClass = rate > 30 ? 'busy' : rate > 10 ? 'moderate' : 'healthy';
+
+    // Aggregate by station for last 2 hours
+    const byStation = {};
+    trips.forEach(t => {
+      if (!byStation[t.station_name]) byStation[t.station_name] = {dep:0, arr:0, last:t.detected_at};
+      byStation[t.station_name].dep += t.trips_departed||0;
+      byStation[t.station_name].arr += t.trips_arrived||0;
+    });
+
+    // Top departures and arrivals
+    const topDep = Object.entries(byStation)
+      .filter(([,v]) => v.dep > 0)
+      .sort((a,b) => b[1].dep - a[1].dep)
+      .slice(0, 8);
+
+    const topArr = Object.entries(byStation)
+      .filter(([,v]) => v.arr > 0)
+      .sort((a,b) => b[1].arr - a[1].arr)
+      .slice(0, 8);
+
+    const formatTime = iso => {
+      const d = new Date(iso);
+      return d.toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'});
+    };
+
+    const depHTML = topDep.length ? topDep.map(([name, v]) => `
+      <div class="activity-item">
+        <span class="activity-icon">🚲</span>
+        <span class="activity-station">${name}</span>
+        <span class="activity-count dep">-${v.dep}</span>
+      </div>`).join('') : '<div class="activity-empty">No departures recorded yet</div>';
+
+    const arrHTML = topArr.length ? topArr.map(([name, v]) => `
+      <div class="activity-item">
+        <span class="activity-icon">🅿️</span>
+        <span class="activity-station">${name}</span>
+        <span class="activity-count arr">+${v.arr}</span>
+      </div>`).join('') : '<div class="activity-empty">No arrivals recorded yet</div>';
+
+    document.getElementById('activity-body').innerHTML = `
+      <div class="activity-grid">
+        <div class="activity-col">
+          <div class="activity-col-title">Top Departures · last 2h</div>
+          ${depHTML}
+        </div>
+        <div class="activity-col">
+          <div class="activity-col-title">Top Arrivals · last 2h</div>
+          ${arrHTML}
+        </div>
+      </div>
+      <div class="network-health">
+        <span class="health-badge ${healthClass}">${healthLabel}</span>
+        <span>${dep2h} departures and ${arr2h} arrivals recorded across Bay Ridge in the last 2 hours</span>
+        <span style="margin-left:auto;font-family:var(--font-mono);font-size:11px;color:var(--muted)">via Supabase · updates every 5 min</span>
+      </div>`;
+
+    document.getElementById('activity-meta').textContent =
+      `Last trip data: ${formatTime(trips[0].detected_at)}`;
+
+  } catch(e) {
+    console.error('Supabase fetch failed:', e);
+    document.getElementById('activity-body').innerHTML =
+      `<div class="activity-empty">Could not load activity data: ${e.message}</div>`;
+    document.getElementById('s-trips-1h').textContent = '?';
+    document.getElementById('s-trips-2h').textContent = '?';
+  }
+}
+
 // ═══════════════════════════════════════════
 // LIVE DATA
 // ═══════════════════════════════════════════
@@ -860,7 +1064,9 @@ let stations=[], selectedId=null, map=null, markers={};
 window.addEventListener('load',()=>{
   initMap();
   fetchLiveData();
-  setInterval(fetchLiveData,120000);
+  fetchRecentActivity();
+  setInterval(fetchLiveData, 120000);
+  setInterval(fetchRecentActivity, 300000);  // refresh activity every 5 min
   buildHistoricalTab();
   initTideChart();
   initRhythmChart();
