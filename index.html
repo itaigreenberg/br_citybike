@@ -544,7 +544,7 @@ body{background:var(--bg);color:var(--ink);font-family:var(--font-body);min-heig
       <div class="stat-block-bar"></div>
     </div>
     <div class="stat-block">
-      <div class="stat-block-label">Trips Last 2h</div>
+      <div class="stat-block-label">Trips This Window</div>
       <div class="stat-block-value" id="s-trips-2h" style="color:var(--amber)">—</div>
       <div class="stat-block-sub" id="s-trips-2h-sub">From Supabase</div>
       <div class="stat-block-bar"></div>
@@ -555,7 +555,12 @@ body{background:var(--bg);color:var(--ink);font-family:var(--font-body);min-heig
   <div class="panel" style="margin-bottom:20px">
     <div class="panel-head">
       <span class="panel-head-title">Recent Activity</span>
-      <span class="panel-head-meta" id="activity-meta">Loading from Supabase…</span>
+      <div style="display:flex;align-items:center;gap:8px">
+        <button class="window-btn active" id="win-2h"  onclick="setWindow('2h')"  style="font-family:var(--font-mono);font-size:11px;padding:3px 10px;border-radius:2px;cursor:pointer;border:1px solid var(--rule);background:var(--accent);color:#fff;transition:all .15s">2h</button>
+        <button class="window-btn"        id="win-6h"  onclick="setWindow('6h')"  style="font-family:var(--font-mono);font-size:11px;padding:3px 10px;border-radius:2px;cursor:pointer;border:1px solid var(--rule);background:none;color:var(--muted);transition:all .15s">6h</button>
+        <button class="window-btn"        id="win-24h" onclick="setWindow('24h')" style="font-family:var(--font-mono);font-size:11px;padding:3px 10px;border-radius:2px;cursor:pointer;border:1px solid var(--rule);background:none;color:var(--muted);transition:all .15s">24h</button>
+        <span class="panel-head-meta" id="activity-meta">Loading…</span>
+      </div>
     </div>
     <div id="activity-body">
       <div class="load-state"><div class="spinner"></div>Fetching recent trips…</div>
@@ -906,18 +911,108 @@ function inBayRidge(lat,lon){
 // ═══════════════════════════════════════════
 // SUPABASE REAL-TIME ACTIVITY
 // ═══════════════════════════════════════════
+let currentWindow = '2h';
+
+function setWindow(w) {
+  currentWindow = w;
+  document.querySelectorAll('.window-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById('win-' + w).classList.add('active');
+  renderActivityWindow(window._tripCache || [], w);
+}
+
+function renderActivityWindow(trips, w) {
+  const now = new Date();
+  const cutoffs = { '2h': 2, '6h': 6, '24h': 24 };
+  const hours = cutoffs[w];
+  const cutoff = new Date(now - hours * 60 * 60 * 1000);
+  const oneHourAgo = new Date(now - 60 * 60 * 1000);
+
+  const filtered = trips.filter(t => new Date(t.detected_at) >= cutoff);
+  const lastHour = trips.filter(t => new Date(t.detected_at) >= oneHourAgo);
+
+  const dep1h = lastHour.reduce((s,t) => s+(t.trips_departed||0), 0);
+  const arr1h = lastHour.reduce((s,t) => s+(t.trips_arrived||0), 0);
+  const depW  = filtered.reduce((s,t) => s+(t.trips_departed||0), 0);
+  const arrW  = filtered.reduce((s,t) => s+(t.trips_arrived||0), 0);
+
+  document.getElementById('s-trips-1h').textContent = dep1h + arr1h;
+  document.getElementById('s-trips-1h-sub').textContent = `${dep1h} out · ${arr1h} in`;
+  document.getElementById('s-trips-2h').textContent = depW + arrW;
+  document.getElementById('s-trips-2h-sub').textContent = `${depW} out · ${arrW} in · last ${w}`;
+
+  if (!filtered.length) {
+    document.getElementById('activity-body').innerHTML =
+      `<div class="activity-empty">No trip activity in the last ${w}.</div>`;
+    return;
+  }
+
+  const rate = dep1h + arr1h;
+  const healthLabel = rate > 30 ? 'BUSY' : rate > 10 ? 'ACTIVE' : 'QUIET';
+  const healthClass = rate > 30 ? 'busy'  : rate > 10 ? 'moderate' : 'healthy';
+
+  const byStation = {};
+  filtered.forEach(t => {
+    if (!byStation[t.station_name]) byStation[t.station_name] = {dep:0, arr:0};
+    byStation[t.station_name].dep += t.trips_departed||0;
+    byStation[t.station_name].arr += t.trips_arrived||0;
+  });
+
+  const topDep = Object.entries(byStation)
+    .filter(([,v]) => v.dep > 0)
+    .sort((a,b) => b[1].dep - a[1].dep).slice(0, 8);
+  const topArr = Object.entries(byStation)
+    .filter(([,v]) => v.arr > 0)
+    .sort((a,b) => b[1].arr - a[1].arr).slice(0, 8);
+
+  const depHTML = topDep.length ? topDep.map(([name,v]) => `
+    <div class="activity-item">
+      <span class="activity-icon">🚲</span>
+      <span class="activity-station">${name}</span>
+      <span class="activity-count dep">-${v.dep}</span>
+    </div>`).join('') : '<div class="activity-empty">No departures in this window</div>';
+
+  const arrHTML = topArr.length ? topArr.map(([name,v]) => `
+    <div class="activity-item">
+      <span class="activity-icon">🅿️</span>
+      <span class="activity-station">${name}</span>
+      <span class="activity-count arr">+${v.arr}</span>
+    </div>`).join('') : '<div class="activity-empty">No arrivals in this window</div>';
+
+  const lastTime = new Date(trips[0].detected_at)
+    .toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'});
+
+  document.getElementById('activity-body').innerHTML = `
+    <div class="activity-grid">
+      <div class="activity-col">
+        <div class="activity-col-title">Top Departures · last ${w}</div>
+        ${depHTML}
+      </div>
+      <div class="activity-col">
+        <div class="activity-col-title">Top Arrivals · last ${w}</div>
+        ${arrHTML}
+      </div>
+    </div>
+    <div class="network-health">
+      <span class="health-badge ${healthClass}">${healthLabel}</span>
+      <span>${depW} departures · ${arrW} arrivals in the last ${w}</span>
+      <span style="margin-left:auto;font-family:var(--font-mono);font-size:11px;color:var(--muted)">
+        via Supabase · last poll: ${lastTime}
+      </span>
+    </div>`;
+
+  document.getElementById('activity-meta').textContent = `Last trip data: ${lastTime}`;
+}
+
 async function fetchRecentActivity() {
   try {
-    const now = new Date();
-    const oneHourAgo  = new Date(now - 60*60*1000).toISOString();
-    const twoHoursAgo = new Date(now - 2*60*60*1000).toISOString();
+    const twentyFourHoursAgo = new Date(Date.now() - 24*60*60*1000).toISOString();
 
     const trips = await sbGet('inferred_trips', {
-      'select': 'detected_at,station_name,trips_departed,trips_arrived',
-      'detected_at': `gte.${twoHoursAgo}`,
+      'select':       'detected_at,station_name,trips_departed,trips_arrived',
+      'detected_at':  `gte.${twentyFourHoursAgo}`,
       'is_rebalance': 'eq.false',
-      'order': 'detected_at.desc',
-      'limit': '200'
+      'order':        'detected_at.desc',
+      'limit':        '1000'
     });
 
     if (!trips.length) {
@@ -926,71 +1021,13 @@ async function fetchRecentActivity() {
       document.getElementById('s-trips-1h').textContent = '0';
       document.getElementById('s-trips-1h-sub').textContent = 'No data yet';
       document.getElementById('s-trips-2h').textContent = '0';
+      document.getElementById('s-trips-2h-sub').textContent = 'No data yet';
       return;
     }
 
-    const lastHour = trips.filter(t => new Date(t.detected_at) >= new Date(oneHourAgo));
-    const dep1h = lastHour.reduce((s,t) => s+(t.trips_departed||0), 0);
-    const arr1h = lastHour.reduce((s,t) => s+(t.trips_arrived||0), 0);
-    const dep2h = trips.reduce((s,t) => s+(t.trips_departed||0), 0);
-    const arr2h = trips.reduce((s,t) => s+(t.trips_arrived||0), 0);
-
-    document.getElementById('s-trips-1h').textContent = dep1h + arr1h;
-    document.getElementById('s-trips-1h-sub').textContent = `${dep1h} out · ${arr1h} in`;
-    document.getElementById('s-trips-2h').textContent = dep2h + arr2h;
-    document.getElementById('s-trips-2h-sub').textContent = `${dep2h} out · ${arr2h} in`;
-
-    const rate = dep1h + arr1h;
-    const healthLabel = rate > 30 ? 'BUSY' : rate > 10 ? 'ACTIVE' : 'QUIET';
-    const healthClass = rate > 30 ? 'busy' : rate > 10 ? 'moderate' : 'healthy';
-
-    const byStation = {};
-    trips.forEach(t => {
-      if (!byStation[t.station_name]) byStation[t.station_name] = {dep:0,arr:0};
-      byStation[t.station_name].dep += t.trips_departed||0;
-      byStation[t.station_name].arr += t.trips_arrived||0;
-    });
-
-    const topDep = Object.entries(byStation).filter(([,v])=>v.dep>0)
-      .sort((a,b)=>b[1].dep-a[1].dep).slice(0,8);
-    const topArr = Object.entries(byStation).filter(([,v])=>v.arr>0)
-      .sort((a,b)=>b[1].arr-a[1].arr).slice(0,8);
-
-    const depHTML = topDep.length ? topDep.map(([name,v])=>`
-      <div class="activity-item">
-        <span class="activity-icon">🚲</span>
-        <span class="activity-station">${name}</span>
-        <span class="activity-count dep">-${v.dep}</span>
-      </div>`).join('') : '<div class="activity-empty">No departures yet</div>';
-
-    const arrHTML = topArr.length ? topArr.map(([name,v])=>`
-      <div class="activity-item">
-        <span class="activity-icon">🅿️</span>
-        <span class="activity-station">${name}</span>
-        <span class="activity-count arr">+${v.arr}</span>
-      </div>`).join('') : '<div class="activity-empty">No arrivals yet</div>';
-
-    const lastTime = new Date(trips[0].detected_at)
-      .toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'});
-
-    document.getElementById('activity-body').innerHTML = `
-      <div class="activity-grid">
-        <div class="activity-col">
-          <div class="activity-col-title">Top Departures · last 2h</div>
-          ${depHTML}
-        </div>
-        <div class="activity-col">
-          <div class="activity-col-title">Top Arrivals · last 2h</div>
-          ${arrHTML}
-        </div>
-      </div>
-      <div class="network-health">
-        <span class="health-badge ${healthClass}">${healthLabel}</span>
-        <span>${dep2h} departures · ${arr2h} arrivals across Bay Ridge in the last 2 hours</span>
-        <span style="margin-left:auto;font-family:var(--font-mono);font-size:11px;color:var(--muted)">via Supabase · updates every 10 min</span>
-      </div>`;
-
-    document.getElementById('activity-meta').textContent = `Last trip data: ${lastTime}`;
+    // Cache for window switching without re-fetching
+    window._tripCache = trips;
+    renderActivityWindow(trips, currentWindow);
 
   } catch(e) {
     console.error('Supabase fetch failed:', e);
@@ -1000,7 +1037,6 @@ async function fetchRecentActivity() {
     document.getElementById('s-trips-2h').textContent = '?';
   }
 }
-
 // ═══════════════════════════════════════════
 // LIVE DATA
 // ═══════════════════════════════════════════
@@ -1276,6 +1312,7 @@ function switchTab(tab){
 </script>
 
 <style>
+.window-btn.active{background:var(--accent)!important;color:#fff!important;border-color:var(--accent)!important}
 .br-tooltip{background:#fff!important;border:1px solid #dde1ea!important;color:#0f1117!important;font-family:'IBM Plex Sans',sans-serif;font-size:12px;border-radius:3px;box-shadow:0 2px 8px rgba(0,0,0,.1)}
 .br-tooltip::before{border-top-color:#dde1ea!important}
 </style>
