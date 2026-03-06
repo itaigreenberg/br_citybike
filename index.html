@@ -990,19 +990,17 @@ let baselineCache = {};     // { "1-8": 3.2, "2-17": 5.1 ... } day_of_week-hour 
 async function fetchVsExpected() {
   try {
     const now = new Date();
-    const dayOfWeek = now.getUTCDay();   // 0=Sun, 1=Mon ... 6=Sat
+    const dayOfWeek = now.getUTCDay();
     const currentHour = now.getUTCHours();
 
-    // Fetch last 90 days of inferred trips grouped by hour (capped for seasonal relevance)
     const windowDays = 90;
-    const thirteenDaysAgo = new Date(now - windowDays * 24 * 60 * 60 * 1000).toISOString();
+    const windowStart = new Date(now - windowDays * 24 * 60 * 60 * 1000 - 10*60*1000).toISOString();
     const todayStart = new Date(now);
     todayStart.setUTCHours(0, 0, 0, 0);
 
-    // Get all trips in rolling window (non-rebalance)
     const trips = await sbGet('inferred_trips', {
       'select':       'detected_at,trips_departed,trips_arrived',
-      'detected_at':  `gte.${thirteenDaysAgo}`,
+      'detected_at':  `gte.${windowStart}`,
       'is_rebalance': 'eq.false',
       'order':        'detected_at.asc',
       'limit':        '5000',
@@ -1010,9 +1008,9 @@ async function fetchVsExpected() {
 
     if (!trips.length) return;
 
-    // Aggregate trips by day-of-week + hour
-    const byDayHour = {};  // "dow-hour" -> [trip counts per occurrence]
-    const byDate = {};     // "YYYY-MM-DD" -> { hour -> count }
+    // Aggregate by day-of-week + hour
+    const byDayHour = {};
+    const byDate = {};
 
     trips.forEach(t => {
       const d = new Date(t.detected_at);
@@ -1029,12 +1027,10 @@ async function fetchVsExpected() {
       byDate[dateKey][hour] = (byDate[dateKey][hour] || 0) + count;
     });
 
-    // Compute baseline averages per day-hour
+    // Compute baseline averages
     const baseline = {};
     Object.entries(byDayHour).forEach(([key, counts]) => {
-      // Sum per polling interval, then normalize to hourly rate
       const total = counts.reduce((a, b) => a + b, 0);
-      // Count distinct days that had this hour
       const [dow, hour] = key.split('-').map(Number);
       const daysWithThisHour = Object.keys(byDate).filter(date => {
         return new Date(date).getUTCDay() === dow && byDate[date][hour] !== undefined;
@@ -1043,11 +1039,10 @@ async function fetchVsExpected() {
     });
     baselineCache = baseline;
 
-    // Current hour actual trips
-    const currentHourStart = new Date(now);
-    currentHourStart.setUTCMinutes(0, 0, 0);
+    // Rolling 60-minute window (consistent with Trips Last Hour stat)
+    const oneHourAgo = new Date(now - 60 * 60 * 1000 - 10 * 60 * 1000);
     const currentTrips = trips
-      .filter(t => new Date(t.detected_at) >= currentHourStart)
+      .filter(t => new Date(t.detected_at) >= oneHourAgo)
       .reduce((s, t) => s + (t.trips_departed||0) + (t.trips_arrived||0), 0);
 
     const currentKey = `${dayOfWeek}-${currentHour}`;
@@ -1084,9 +1079,10 @@ async function fetchVsExpected() {
     }
 
     document.getElementById('vsSub').textContent =
-      `${currentTrips} trips observed this hour vs ~${Math.round(expectedTrips)} expected on a typical ${dayNames[dayOfWeek]} at ${hourLabel}`;
+      `${currentTrips} trips in the last hour vs ~${Math.round(expectedTrips)} expected on a typical ${dayNames[dayOfWeek]} at ${hourLabel}`;
     document.getElementById('vsContext').innerHTML =
       `Expected: <span>~${Math.round(expectedTrips)}</span> · Actual: <span>${currentTrips}</span>`;
+
     const daysCollected = Object.keys(byDate).length;
     const windowLabel = daysCollected < 30 ? `${daysCollected} days (growing)` :
                         daysCollected < 90 ? `${daysCollected} days` : '90 days';
@@ -1098,7 +1094,6 @@ async function fetchVsExpected() {
     const todayByHour = byDate[todayDateKey] || {};
     todayHourlyCache = Array.from({length: 24}, (_, h) => todayByHour[h] || null);
 
-    // Build baseline for current day-of-week
     const baselineByHour = Array.from({length: 24}, (_, h) => {
       const k = `${dayOfWeek}-${h}`;
       return baseline[k] ? Math.round(baseline[k] * 10) / 10 : null;
@@ -1110,6 +1105,7 @@ async function fetchVsExpected() {
     console.error('fetchVsExpected failed:', e);
   }
 }
+    updateComparisonChart(todayHourlyCache, baselineByHour, now);
 
 function updateComparisonChart(todayData, baselineData, now) {
   const labels = Array.from({length: 24}, (_, h) =>
