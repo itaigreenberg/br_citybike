@@ -1105,8 +1105,6 @@ async function fetchVsExpected() {
   } catch(e) {
     console.error('fetchVsExpected failed:', e);
   }
-}
-    updateComparisonChart(todayHourlyCache, baselineByHour, now);
 
 function updateComparisonChart(todayData, baselineData, now) {
   const labels = Array.from({length: 24}, (_, h) =>
