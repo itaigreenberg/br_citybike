@@ -538,7 +538,6 @@ body{background:var(--bg);color:var(--ink);font-family:var(--font-body);min-heig
 const SUPABASE_URL = 'https://vqichsthcvkdcnekfggr.supabase.co';
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZxaWNoc3RoY3ZrZGNuZWtmZ2dyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzE3MjE5NzQsImV4cCI6MjA4NzI5Nzk3NH0.DIPu7nZu53c9RzGBMfO4UyfnOGF-3wWk-Dq07fNnJa4';
 
-
 async function sbGet(table, params) {
   const url = new URL(`${SUPABASE_URL}/rest/v1/${table}`);
   Object.entries(params).forEach(([k,v]) => url.searchParams.set(k, v));
@@ -681,14 +680,16 @@ async function fetchVsExpected() {
       const dow  = d.getUTCDay();
       const hour = d.getUTCHours();
       const key  = `${dow}-${hour}`;
-      const dateKey = d.toISOString().substring(0, 10);
+      // Use local date string for today-vs-baseline chart so midnight UTC doesn't flip the date
+      const localDateKey = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+      const localHour = d.getHours();
       const count = (t.trips_departed || 0) + (t.trips_arrived || 0);
 
       if (!byDayHour[key]) byDayHour[key] = [];
       byDayHour[key].push(count);
 
-      if (!byDate[dateKey]) byDate[dateKey] = {};
-      byDate[dateKey][hour] = (byDate[dateKey][hour] || 0) + count;
+      if (!byDate[localDateKey]) byDate[localDateKey] = {};
+      byDate[localDateKey][localHour] = (byDate[localDateKey][localHour] || 0) + count;
     });
 
     // Compute baseline averages
@@ -756,8 +757,14 @@ async function fetchVsExpected() {
       `Baseline: ${windowLabel} of data · updates every 10 min`;
 
     // Build today's hourly data for comparison chart
-    const todayDateKey = now.toISOString().substring(0, 10);
-    const todayByHour = byDate[todayDateKey] || {};
+    // Build today's bars from _tripCache (last 24h, already fetched) rather than
+    // the 90-day historical query — avoids any row-limit or date-key mismatch issues
+    const todayByHour = {};
+    (window._tripCache || []).forEach(t => {
+      const d = new Date(t.detected_at);
+      const h = d.getHours(); // local hour
+      todayByHour[h] = (todayByHour[h] || 0) + (t.trips_departed || 0) + (t.trips_arrived || 0);
+    });
     todayHourlyCache = Array.from({length: 24}, (_, h) => todayByHour[h] || null);
 
     const baselineByHour = Array.from({length: 24}, (_, h) => {
@@ -777,7 +784,7 @@ function updateComparisonChart(todayData, baselineData, now) {
     h === 0 ? '12AM' : h < 12 ? `${h}AM` : h === 12 ? '12PM' : `${h-12}PM`
   );
 
-  const currentHour = now.getUTCHours();
+  const currentHour = now.getHours(); // local time — don't clip future bars using UTC
   const todayClean = todayData.map((v, h) => h <= currentHour ? v : null);
 
   const ctx = document.getElementById('comparisonChart').getContext('2d');
