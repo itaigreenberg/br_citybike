@@ -374,22 +374,25 @@ body{background:var(--bg);color:var(--ink);font-family:var(--font-body);min-heig
         </div>
       </div>
 
-      <div class="tide-panel">
-        <div class="panel-head">
-          <span class="panel-head-title">The Commuter Tide</span>
-          <span class="panel-head-meta">Based on Q3/Q4 2025 trip data</span>
+     <div class="tide-panel">
+      <div class="panel-head">
+        <span class="panel-head-title">Today vs Rolling Average</span>
+        <span class="panel-head-meta">Trips per hour · live data</span>
+      </div>
+      <div class="comparison-wrap" style="border-top:none">
+        <canvas id="comparisonChart" height="100"></canvas>
+      </div>
+      <div class="panel-head" style="border-top:1px solid var(--rule)">
+        <span class="panel-head-title">The Commuter Tide</span>
+        <span class="panel-head-meta">Based on Q3/Q4 2025 trip data</span>
+      </div>
+      <div class="tide-inner">
+        <div class="tide-toggle">
+          <button class="tide-btn active" onclick="showTide('weekday')" id="tide-weekday">Weekday</button>
+          <button class="tide-btn" onclick="showTide('weekend')" id="tide-weekend">Weekend</button>
         </div>
-        <div class="tide-inner">
-          <div class="tide-toggle">
-            <button class="tide-btn active" onclick="showTide('weekday')" id="tide-weekday">Weekday</button>
-            <button class="tide-btn" onclick="showTide('weekend')" id="tide-weekend">Weekend</button>
-          </div>
-          <div class="tide-note" id="tide-note">Outbound peaks at 7–8 AM, inbound peaks at 5 PM — a clear commuter signature.</div>
-          <canvas id="tideChart" height="160"></canvas>
-        </div>
-        <div class="comparison-wrap">
-          <div class="comparison-title">Today vs rolling average — trips per hour</div>
-          <canvas id="comparisonChart" height="100"></canvas>
+        <div class="tide-note" id="tide-note">Outbound peaks at 7–8 AM, inbound peaks at 5 PM — a clear commuter signature.</div>
+        <canvas id="tideChart" height="160"></canvas>
         </div>
       </div>
     </div>
