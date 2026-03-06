@@ -1041,7 +1041,8 @@ async function fetchVsExpected() {
 
     // Rolling 60-minute window (consistent with Trips Last Hour stat)
     const oneHourAgo = new Date(now - 60 * 60 * 1000 - 10 * 60 * 1000);
-    const currentTrips = trips
+    const recentTrips = window._tripCache || trips;
+    const currentTrips = recentTrips
       .filter(t => new Date(t.detected_at) >= oneHourAgo)
       .reduce((s, t) => s + (t.trips_departed||0) + (t.trips_arrived||0), 0);
 
