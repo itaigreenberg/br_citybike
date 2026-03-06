@@ -28,146 +28,54 @@
   --font-body:'IBM Plex Sans',system-ui,sans-serif;
 }
 body{background:var(--bg);color:var(--ink);font-family:var(--font-body);min-height:100vh;overflow-x:hidden}
-
-/* ── MASTHEAD ── */
-.masthead{
-  background:var(--surface);
-  border-bottom:3px solid var(--ink);
-  padding:0 40px;
-}
-.masthead-top{
-  display:flex;align-items:center;justify-content:space-between;
-  padding:20px 0 16px;
-  border-bottom:1px solid var(--rule);
-}
-.masthead-title{
-  font-family:var(--font-display);
-  font-size:28px;font-weight:900;
-  letter-spacing:-0.02em;
-  line-height:1;
-}
+.masthead{background:var(--surface);border-bottom:3px solid var(--ink);padding:0 40px}
+.masthead-top{display:flex;align-items:center;justify-content:space-between;padding:20px 0 16px;border-bottom:1px solid var(--rule)}
+.masthead-title{font-family:var(--font-display);font-size:28px;font-weight:900;letter-spacing:-0.02em;line-height:1}
 .masthead-title span{color:var(--accent)}
-.masthead-eyebrow{
-  font-family:var(--font-mono);
-  font-size:10px;letter-spacing:0.12em;
-  text-transform:uppercase;color:var(--muted);
-  margin-bottom:6px;
-}
+.masthead-eyebrow{font-family:var(--font-mono);font-size:10px;letter-spacing:0.12em;text-transform:uppercase;color:var(--muted);margin-bottom:6px}
 .masthead-right{display:flex;align-items:center;gap:20px}
-.live-pill{
-  display:flex;align-items:center;gap:7px;
-  background:var(--green-light);border:1px solid var(--green);
-  border-radius:3px;padding:5px 12px;
-  font-family:var(--font-mono);font-size:11px;color:var(--green);font-weight:600;
-}
+.live-pill{display:flex;align-items:center;gap:7px;background:var(--green-light);border:1px solid var(--green);border-radius:3px;padding:5px 12px;font-family:var(--font-mono);font-size:11px;color:var(--green);font-weight:600}
 .live-dot{width:7px;height:7px;border-radius:50%;background:var(--green);animation:blink 2s infinite}
 @keyframes blink{0%,100%{opacity:1}50%{opacity:.3}}
 .updated-text{font-family:var(--font-mono);font-size:11px;color:var(--muted)}
-.refresh-btn{
-  font-family:var(--font-mono);font-size:11px;
-  background:none;border:1px solid var(--rule);
-  border-radius:3px;padding:5px 12px;cursor:pointer;
-  color:var(--ink2);transition:all .2s;
-}
+.refresh-btn{font-family:var(--font-mono);font-size:11px;background:none;border:1px solid var(--rule);border-radius:3px;padding:5px 12px;cursor:pointer;color:var(--ink2);transition:all .2s}
 .refresh-btn:hover{border-color:var(--accent);color:var(--accent)}
-
-/* ── NAV TABS ── */
 .tab-nav{display:flex;gap:0;padding:0}
-.tab-btn{
-  font-family:var(--font-mono);font-size:12px;font-weight:600;
-  letter-spacing:0.04em;text-transform:uppercase;
-  padding:14px 28px;cursor:pointer;
-  border:none;background:none;color:var(--muted);
-  border-bottom:3px solid transparent;margin-bottom:-3px;
-  transition:all .2s;position:relative;
-}
+.tab-btn{font-family:var(--font-mono);font-size:12px;font-weight:600;letter-spacing:0.04em;text-transform:uppercase;padding:14px 28px;cursor:pointer;border:none;background:none;color:var(--muted);border-bottom:3px solid transparent;margin-bottom:-3px;transition:all .2s;position:relative}
 .tab-btn:hover{color:var(--ink)}
 .tab-btn.active{color:var(--accent);border-bottom-color:var(--accent)}
-
-/* ── TAB CONTENT ── */
 .tab-content{display:none}
 .tab-content.active{display:block}
-
-/* ── CONTAINER ── */
 .container{max-width:1440px;margin:0 auto;padding:28px 40px}
-
-/* ── STAT STRIP ── */
-.stat-strip{
-  display:grid;grid-template-columns:repeat(4,1fr);
-  gap:0;border:1px solid var(--rule);
-  background:var(--surface);border-radius:4px;
-  margin-bottom:24px;overflow:hidden;
-}
-.stat-block{
-  padding:20px 24px;border-right:1px solid var(--rule);
-  position:relative;animation:fadeUp .4s ease both;
-}
+.stat-strip{display:grid;grid-template-columns:repeat(4,1fr);gap:0;border:1px solid var(--rule);background:var(--surface);border-radius:4px;margin-bottom:24px;overflow:hidden}
+.stat-block{padding:20px 24px;border-right:1px solid var(--rule);position:relative;animation:fadeUp .4s ease both}
 .stat-block:last-child{border-right:none}
 .stat-block:nth-child(1){animation-delay:.05s}
 .stat-block:nth-child(2){animation-delay:.1s}
 .stat-block:nth-child(3){animation-delay:.15s}
 .stat-block:nth-child(4){animation-delay:.2s}
 @keyframes fadeUp{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:translateY(0)}}
-.stat-block-label{
-  font-family:var(--font-mono);font-size:10px;
-  letter-spacing:0.1em;text-transform:uppercase;
-  color:var(--muted);margin-bottom:8px;
-}
-.stat-block-value{
-  font-family:var(--font-display);font-size:40px;
-  font-weight:700;line-height:1;color:var(--accent);
-}
+.stat-block-label{font-family:var(--font-mono);font-size:10px;letter-spacing:0.1em;text-transform:uppercase;color:var(--muted);margin-bottom:8px}
+.stat-block-value{font-family:var(--font-display);font-size:40px;font-weight:700;line-height:1;color:var(--accent)}
 .stat-block-value.red{color:var(--accent2)}
 .stat-block-value.green{color:var(--green)}
 .stat-block-sub{font-size:12px;color:var(--muted);margin-top:6px}
-.stat-block-bar{
-  position:absolute;bottom:0;left:0;right:0;height:3px;
-  background:linear-gradient(90deg,var(--accent),#4da3ff);
-  transform:scaleX(0);transform-origin:left;
-  transition:transform .8s ease;
-}
+.stat-block-bar{position:absolute;bottom:0;left:0;right:0;height:3px;background:linear-gradient(90deg,var(--accent),#4da3ff);transform:scaleX(0);transform-origin:left;transition:transform .8s ease}
 .stat-block:hover .stat-block-bar{transform:scaleX(1)}
-
-/* ── MAIN GRID ── */
 .main-grid{display:grid;grid-template-columns:380px 1fr;gap:24px}
-
-/* ── PANELS ── */
-.panel{
-  background:var(--surface);border:1px solid var(--rule);
-  border-radius:4px;overflow:hidden;
-}
-.panel-head{
-  padding:14px 20px;border-bottom:1px solid var(--rule);
-  display:flex;align-items:center;justify-content:space-between;
-}
-.panel-head-title{
-  font-family:var(--font-mono);font-size:11px;
-  font-weight:600;letter-spacing:0.1em;text-transform:uppercase;
-  color:var(--ink2);
-}
-.panel-head-meta{
-  font-family:var(--font-mono);font-size:11px;color:var(--muted);
-  background:var(--bg);border-radius:2px;padding:2px 8px;
-}
-
-/* ── STATION LIST ── */
+.panel{background:var(--surface);border:1px solid var(--rule);border-radius:4px;overflow:hidden}
+.panel-head{padding:14px 20px;border-bottom:1px solid var(--rule);display:flex;align-items:center;justify-content:space-between}
+.panel-head-title{font-family:var(--font-mono);font-size:11px;font-weight:600;letter-spacing:0.1em;text-transform:uppercase;color:var(--ink2)}
+.panel-head-meta{font-family:var(--font-mono);font-size:11px;color:var(--muted);background:var(--bg);border-radius:2px;padding:2px 8px}
 .station-list{overflow-y:auto;max-height:640px}
 .station-list::-webkit-scrollbar{width:3px}
 .station-list::-webkit-scrollbar-thumb{background:var(--rule)}
-.station-item{
-  padding:12px 20px;border-bottom:1px solid var(--rule);
-  cursor:pointer;transition:background .12s;
-}
+.station-item{padding:12px 20px;border-bottom:1px solid var(--rule);cursor:pointer;transition:background .12s}
 .station-item:hover{background:var(--bg)}
 .station-item.selected{background:var(--accent-light);border-left:3px solid var(--accent)}
 .station-item:last-child{border-bottom:none}
 .station-item-name{font-size:13px;font-weight:500;margin-bottom:7px;line-height:1.3}
-.station-item-name .badge{
-  display:inline-block;font-family:var(--font-mono);
-  font-size:9px;font-weight:600;letter-spacing:0.06em;
-  padding:1px 5px;border-radius:2px;margin-left:6px;
-  vertical-align:middle;
-}
+.station-item-name .badge{display:inline-block;font-family:var(--font-mono);font-size:9px;font-weight:600;letter-spacing:0.06em;padding:1px 5px;border-radius:2px;margin-left:6px;vertical-align:middle}
 .badge.original{background:var(--accent-light);color:var(--accent)}
 .badge.new{background:var(--amber-light);color:var(--amber)}
 .station-bars{display:flex;gap:12px}
@@ -182,55 +90,20 @@ body{background:var(--bg);color:var(--ink);font-family:var(--font-body);min-heig
 .dot{display:inline-block;width:6px;height:6px;border-radius:50%;margin-right:4px}
 .dot.on{background:var(--green)}
 .dot.off{background:var(--accent2)}
-
-/* ── RIGHT COLUMN ── */
 .right-col{display:flex;flex-direction:column;gap:20px}
-
-/* ── MAP ── */
-#map-wrap{
-  background:var(--surface);border:1px solid var(--rule);
-  border-radius:4px;overflow:hidden;height:340px;position:relative;
-}
+#map-wrap{background:var(--surface);border:1px solid var(--rule);border-radius:4px;overflow:hidden;height:340px;position:relative}
 #map{width:100%;height:100%}
-.map-label{
-  position:absolute;top:12px;left:12px;z-index:500;
-  background:rgba(255,255,255,.92);border:1px solid var(--rule);
-  border-radius:3px;padding:6px 10px;
-  font-family:var(--font-mono);font-size:10px;color:var(--muted);
-  backdrop-filter:blur(4px);
-}
-.map-legend{
-  position:absolute;bottom:12px;left:12px;z-index:500;
-  background:rgba(255,255,255,.92);border:1px solid var(--rule);
-  border-radius:3px;padding:8px 12px;
-  font-family:var(--font-mono);font-size:10px;
-  backdrop-filter:blur(4px);
-  display:flex;flex-direction:column;gap:5px;
-}
+.map-label{position:absolute;top:12px;left:12px;z-index:500;background:rgba(255,255,255,.92);border:1px solid var(--rule);border-radius:3px;padding:6px 10px;font-family:var(--font-mono);font-size:10px;color:var(--muted);backdrop-filter:blur(4px)}
+.map-legend{position:absolute;bottom:12px;left:12px;z-index:500;background:rgba(255,255,255,.92);border:1px solid var(--rule);border-radius:3px;padding:8px 12px;font-family:var(--font-mono);font-size:10px;backdrop-filter:blur(4px);display:flex;flex-direction:column;gap:5px}
 .legend-item{display:flex;align-items:center;gap:6px;color:var(--ink2)}
 .legend-dot{width:10px;height:10px;border-radius:50%;flex-shrink:0}
-
-/* ── TIDE CHART ── */
 .tide-panel{background:var(--surface);border:1px solid var(--rule);border-radius:4px;overflow:hidden}
 .tide-inner{padding:20px}
 .tide-toggle{display:flex;gap:8px;margin-bottom:16px}
-.tide-btn{
-  font-family:var(--font-mono);font-size:11px;
-  padding:5px 12px;border-radius:2px;cursor:pointer;
-  border:1px solid var(--rule);background:none;color:var(--muted);
-  transition:all .15s;
-}
+.tide-btn{font-family:var(--font-mono);font-size:11px;padding:5px 12px;border-radius:2px;cursor:pointer;border:1px solid var(--rule);background:none;color:var(--muted);transition:all .15s}
 .tide-btn.active{background:var(--accent);border-color:var(--accent);color:#fff}
 .tide-note{font-size:11px;color:var(--muted);font-style:italic;margin-bottom:14px}
-
-/* ── DETAIL POPUP ── */
-.detail-popup{
-  display:none;position:fixed;bottom:24px;right:24px;
-  width:300px;background:var(--surface);
-  border:1px solid var(--ink);border-radius:4px;
-  z-index:1000;box-shadow:6px 6px 0 var(--ink);
-  animation:popIn .2s ease;
-}
+.detail-popup{display:none;position:fixed;bottom:24px;right:24px;width:300px;background:var(--surface);border:1px solid var(--ink);border-radius:4px;z-index:1000;box-shadow:6px 6px 0 var(--ink);animation:popIn .2s ease}
 @keyframes popIn{from{transform:translateY(16px);opacity:0}to{transform:translateY(0);opacity:1}}
 .detail-popup.show{display:block}
 .detail-head{padding:12px 16px;border-bottom:1px solid var(--rule);display:flex;justify-content:space-between;align-items:flex-start}
@@ -243,271 +116,98 @@ body{background:var(--bg);color:var(--ink);font-family:var(--font-body);min-heig
 .detail-cap-track{height:6px;background:var(--rule);border-radius:3px;margin-top:12px;overflow:hidden}
 .detail-cap-fill{height:100%;border-radius:3px;background:linear-gradient(90deg,var(--accent),#4da3ff);transition:width .5s}
 .detail-cap-lbl{display:flex;justify-content:space-between;font-family:var(--font-mono);font-size:10px;color:var(--muted);margin-top:4px}
-
-/* ═══════════════════════════════════════════
-   TAB 2 — HISTORICAL & IMPACT
-═══════════════════════════════════════════ */
 .hist-container{max-width:1440px;margin:0 auto;padding:28px 40px}
-
-/* Section headers — editorial style */
-.section-head{
-  display:flex;align-items:baseline;gap:16px;
-  border-bottom:2px solid var(--ink);
-  padding-bottom:10px;margin-bottom:24px;
-}
-.section-number{
-  font-family:var(--font-mono);font-size:11px;
-  color:var(--muted);letter-spacing:0.08em;
-}
-.section-title{
-  font-family:var(--font-display);font-size:22px;
-  font-weight:700;letter-spacing:-0.01em;
-}
+.section-head{display:flex;align-items:baseline;gap:16px;border-bottom:2px solid var(--ink);padding-bottom:10px;margin-bottom:24px}
+.section-number{font-family:var(--font-mono);font-size:11px;color:var(--muted);letter-spacing:0.08em}
+.section-title{font-family:var(--font-display);font-size:22px;font-weight:700;letter-spacing:-0.01em}
 .section-subtitle{font-size:13px;color:var(--muted);margin-left:auto}
-
-/* ── EXPANSION TIMELINE ── */
 .expansion-section{margin-bottom:48px}
-.expansion-lead{
-  font-size:15px;line-height:1.7;color:var(--ink2);
-  max-width:780px;margin-bottom:28px;
-}
+.expansion-lead{font-size:15px;line-height:1.7;color:var(--ink2);max-width:780px;margin-bottom:28px}
 .expansion-lead strong{color:var(--ink)}
-
-.timeline-grid{
-  display:grid;
-  grid-template-columns:repeat(12,1fr);
-  gap:3px;margin-bottom:20px;
-  align-items:end;
-}
+.timeline-grid{display:grid;grid-template-columns:repeat(12,1fr);gap:3px;margin-bottom:20px;align-items:end}
 .timeline-col{display:flex;flex-direction:column;gap:3px}
-.timeline-month-label{
-  font-family:var(--font-mono);font-size:9px;
-  color:var(--muted);text-align:center;
-  margin-top:6px;letter-spacing:0.04em;
-}
-.timeline-bar{
-  border-radius:2px 2px 0 0;
-  transition:opacity .2s;cursor:default;
-  min-height:4px;
-}
+.timeline-month-label{font-family:var(--font-mono);font-size:9px;color:var(--muted);text-align:center;margin-top:6px;letter-spacing:0.04em}
+.timeline-bar{border-radius:2px 2px 0 0;transition:opacity .2s;cursor:default;min-height:4px}
 .timeline-bar:hover{opacity:.75}
 .timeline-bar.original{background:var(--accent)}
 .timeline-bar.new{background:var(--amber)}
-.timeline-legend{
-  display:flex;gap:24px;font-family:var(--font-mono);font-size:11px;color:var(--ink2);
-}
+.timeline-legend{display:flex;gap:24px;font-family:var(--font-mono);font-size:11px;color:var(--ink2)}
 .tl-legend-item{display:flex;align-items:center;gap:6px}
 .tl-dot{width:10px;height:10px;border-radius:2px;flex-shrink:0}
-
-.expansion-stats{
-  display:grid;grid-template-columns:repeat(3,1fr);
-  gap:16px;margin-top:24px;
-}
-.exp-stat{
-  background:var(--surface);border:1px solid var(--rule);
-  border-radius:4px;padding:20px;
-  border-top:3px solid var(--accent);
-}
+.expansion-stats{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-top:24px}
+.exp-stat{background:var(--surface);border:1px solid var(--rule);border-radius:4px;padding:20px;border-top:3px solid var(--accent)}
 .exp-stat.amber{border-top-color:var(--amber)}
 .exp-stat.green{border-top-color:var(--green)}
-.exp-stat-val{
-  font-family:var(--font-display);font-size:48px;
-  font-weight:700;line-height:1;margin-bottom:6px;color:var(--ink);
-}
+.exp-stat-val{font-family:var(--font-display);font-size:48px;font-weight:700;line-height:1;margin-bottom:6px;color:var(--ink)}
 .exp-stat-label{font-size:13px;color:var(--muted);line-height:1.5}
-
-/* ── PROOF OF CONCEPT ── */
 .proof-section{margin-bottom:48px}
 .poc-grid{display:grid;grid-template-columns:1fr 1fr;gap:24px}
-
-.poc-chart-wrap{
-  background:var(--surface);border:1px solid var(--rule);
-  border-radius:4px;padding:24px;
-}
-.poc-chart-title{
-  font-family:var(--font-mono);font-size:11px;
-  letter-spacing:0.08em;text-transform:uppercase;
-  color:var(--muted);margin-bottom:4px;
-}
-.poc-chart-headline{
-  font-family:var(--font-display);font-size:18px;
-  font-weight:700;margin-bottom:16px;color:var(--ink);
-}
-
-/* station monthly sparklines */
+.poc-chart-wrap{background:var(--surface);border:1px solid var(--rule);border-radius:4px;padding:24px}
+.poc-chart-title{font-family:var(--font-mono);font-size:11px;letter-spacing:0.08em;text-transform:uppercase;color:var(--muted);margin-bottom:4px}
+.poc-chart-headline{font-family:var(--font-display);font-size:18px;font-weight:700;margin-bottom:16px;color:var(--ink)}
 .sparkline-list{display:flex;flex-direction:column;gap:12px}
 .sparkline-row{display:flex;align-items:center;gap:12px}
 .sparkline-name{font-size:12px;width:180px;flex-shrink:0;line-height:1.3}
 .sparkline-bars{display:flex;gap:2px;align-items:flex-end;flex:1}
-.sparkline-bar{
-  flex:1;border-radius:1px 1px 0 0;
-  background:var(--accent);opacity:.7;
-  transition:opacity .15s;cursor:default;
-  min-width:4px;
-}
+.sparkline-bar{flex:1;border-radius:1px 1px 0 0;background:var(--accent);opacity:.7;transition:opacity .15s;cursor:default;min-width:4px}
 .sparkline-bar:hover{opacity:1}
 .sparkline-total{font-family:var(--font-mono);font-size:11px;color:var(--muted);width:48px;text-align:right}
-
-/* rhythm chart */
-.rhythm-chart-wrap{
-  background:var(--surface);border:1px solid var(--rule);
-  border-radius:4px;padding:24px;
-}
-
-/* ── IMPACT SECTION ── */
+.rhythm-chart-wrap{background:var(--surface);border:1px solid var(--rule);border-radius:4px;padding:24px}
 .impact-section{margin-bottom:48px}
-
-.impact-centerpiece{
-  background:var(--ink);color:#fff;
-  border-radius:4px;padding:48px;
-  margin-bottom:24px;
-  position:relative;overflow:hidden;
-}
-.impact-centerpiece::before{
-  content:'';position:absolute;
-  top:-60px;right:-60px;
-  width:300px;height:300px;
-  border:40px solid rgba(255,255,255,.04);
-  border-radius:50%;
-}
-.impact-centerpiece::after{
-  content:'';position:absolute;
-  bottom:-40px;left:200px;
-  width:200px;height:200px;
-  border:30px solid rgba(255,255,255,.03);
-  border-radius:50%;
-}
-.impact-kicker{
-  font-family:var(--font-mono);font-size:11px;
-  letter-spacing:0.12em;text-transform:uppercase;
-  color:rgba(255,255,255,.5);margin-bottom:20px;
-}
-.impact-equation{
-  display:flex;flex-direction:column;gap:16px;
-  margin-bottom:32px;position:relative;z-index:1;
-}
-.impact-line{
-  display:flex;align-items:baseline;gap:16px;
-  border-bottom:1px solid rgba(255,255,255,.1);
-  padding-bottom:16px;
-}
+.impact-centerpiece{background:var(--ink);color:#fff;border-radius:4px;padding:48px;margin-bottom:24px;position:relative;overflow:hidden}
+.impact-centerpiece::before{content:'';position:absolute;top:-60px;right:-60px;width:300px;height:300px;border:40px solid rgba(255,255,255,.04);border-radius:50%}
+.impact-centerpiece::after{content:'';position:absolute;bottom:-40px;left:200px;width:200px;height:200px;border:30px solid rgba(255,255,255,.03);border-radius:50%}
+.impact-kicker{font-family:var(--font-mono);font-size:11px;letter-spacing:0.12em;text-transform:uppercase;color:rgba(255,255,255,.5);margin-bottom:20px}
+.impact-equation{display:flex;flex-direction:column;gap:16px;margin-bottom:32px;position:relative;z-index:1}
+.impact-line{display:flex;align-items:baseline;gap:16px;border-bottom:1px solid rgba(255,255,255,.1);padding-bottom:16px}
 .impact-line:last-child{border-bottom:none;padding-bottom:0}
-.impact-num{
-  font-family:var(--font-display);font-size:56px;
-  font-weight:900;line-height:1;color:#fff;
-  flex-shrink:0;min-width:120px;
-}
+.impact-num{font-family:var(--font-display);font-size:56px;font-weight:900;line-height:1;color:#fff;flex-shrink:0;min-width:120px}
 .impact-num.accent{color:#4da3ff}
 .impact-num.zero{color:rgba(255,255,255,.2)}
 .impact-desc{font-size:15px;color:rgba(255,255,255,.7);line-height:1.5}
 .impact-desc strong{color:#fff}
-
-.impact-footnote{
-  font-family:var(--font-mono);font-size:11px;
-  color:rgba(255,255,255,.4);margin-top:20px;
-  position:relative;z-index:1;
-  border-top:1px solid rgba(255,255,255,.08);
-  padding-top:16px;
-}
-
+.impact-footnote{font-family:var(--font-mono);font-size:11px;color:rgba(255,255,255,.4);margin-top:20px;position:relative;z-index:1;border-top:1px solid rgba(255,255,255,.08);padding-top:16px}
 .impact-secondary{display:grid;grid-template-columns:repeat(3,1fr);gap:16px}
-.impact-card{
-  background:var(--surface);border:1px solid var(--rule);
-  border-radius:4px;padding:20px;
-}
+.impact-card{background:var(--surface);border:1px solid var(--rule);border-radius:4px;padding:20px}
 .impact-card-icon{font-size:24px;margin-bottom:10px}
-.impact-card-val{
-  font-family:var(--font-display);font-size:32px;
-  font-weight:700;color:var(--accent);margin-bottom:4px;
-}
+.impact-card-val{font-family:var(--font-display);font-size:32px;font-weight:700;color:var(--accent);margin-bottom:4px}
 .impact-card-label{font-size:13px;color:var(--muted);line-height:1.5}
-
-/* ── DESTINATIONS ── */
 .dest-section{margin-bottom:48px}
 .dest-grid{display:grid;grid-template-columns:1fr 1fr;gap:24px}
 .dest-list{background:var(--surface);border:1px solid var(--rule);border-radius:4px;overflow:hidden}
-.dest-item{
-  display:flex;align-items:center;gap:12px;
-  padding:10px 16px;border-bottom:1px solid var(--rule);
-  font-size:13px;
-}
+.dest-item{display:flex;align-items:center;gap:12px;padding:10px 16px;border-bottom:1px solid var(--rule);font-size:13px}
 .dest-item:last-child{border-bottom:none}
-.dest-rank{
-  font-family:var(--font-mono);font-size:11px;
-  color:var(--muted);width:20px;flex-shrink:0;
-}
+.dest-rank{font-family:var(--font-mono);font-size:11px;color:var(--muted);width:20px;flex-shrink:0}
 .dest-name{flex:1;color:var(--ink2)}
 .dest-count{font-family:var(--font-mono);font-size:12px;color:var(--ink);font-weight:600}
 .dest-bar-wrap{width:80px;flex-shrink:0}
 .dest-bar{height:4px;background:var(--accent);border-radius:2px}
-
-/* ── LOADING / ERROR ── */
-.load-state{
-  display:flex;flex-direction:column;align-items:center;
-  justify-content:center;padding:60px 20px;gap:12px;
-  color:var(--muted);font-family:var(--font-mono);font-size:12px;
-}
-.spinner{
-  width:24px;height:24px;border:2px solid var(--rule);
-  border-top-color:var(--accent);border-radius:50%;
-  animation:spin .8s linear infinite;
-}
+.load-state{display:flex;flex-direction:column;align-items:center;justify-content:center;padding:60px 20px;gap:12px;color:var(--muted);font-family:var(--font-mono);font-size:12px}
+.spinner{width:24px;height:24px;border:2px solid var(--rule);border-top-color:var(--accent);border-radius:50%;animation:spin .8s linear infinite}
 @keyframes spin{to{transform:rotate(360deg)}}
 
-
 /* ── VS EXPECTED BANNER ── */
-.vs-expected{
-  background:var(--surface);border:1px solid var(--rule);
-  border-radius:4px;padding:20px 28px;
-  margin-bottom:20px;
-  display:flex;align-items:center;gap:24px;
-  position:relative;overflow:hidden;
-}
-.vs-expected::before{
-  content:'';position:absolute;left:0;top:0;bottom:0;
-  width:4px;background:var(--accent);
-  transition:background .4s;
-}
+.vs-expected{background:var(--surface);border:1px solid var(--rule);border-radius:4px;padding:20px 28px;margin-bottom:20px;display:flex;align-items:center;gap:24px;position:relative;overflow:hidden}
+.vs-expected::before{content:'';position:absolute;left:0;top:0;bottom:0;width:4px;background:var(--accent);transition:background .4s}
 .vs-expected.above::before{background:var(--accent2)}
 .vs-expected.below::before{background:var(--green)}
 .vs-expected.typical::before{background:var(--muted)}
-.vs-badge{
-  font-family:var(--font-display);
-  font-size:48px;font-weight:900;line-height:1;
-  flex-shrink:0;min-width:120px;
-}
+.vs-badge{font-family:var(--font-display);font-size:48px;font-weight:900;line-height:1;flex-shrink:0;min-width:120px}
 .vs-badge.above{color:var(--accent2)}
 .vs-badge.below{color:var(--green)}
 .vs-badge.typical{color:var(--muted)}
 .vs-details{flex:1}
-.vs-headline{
-  font-size:16px;font-weight:600;
-  color:var(--ink);margin-bottom:4px;
-}
+.vs-headline{font-size:16px;font-weight:600;color:var(--ink);margin-bottom:4px}
 .vs-sub{font-size:13px;color:var(--muted);line-height:1.5}
-.vs-meta{
-  font-family:var(--font-mono);font-size:10px;
-  color:var(--muted);letter-spacing:0.06em;
-  text-transform:uppercase;
-}
-.vs-right{
-  text-align:right;flex-shrink:0;
-}
-.vs-context{
-  font-family:var(--font-mono);font-size:12px;
-  color:var(--ink2);margin-bottom:4px;
-}
+.vs-meta{font-family:var(--font-mono);font-size:10px;color:var(--muted);letter-spacing:0.06em;text-transform:uppercase}
+.vs-right{text-align:right;flex-shrink:0}
+.vs-context{font-family:var(--font-mono);font-size:12px;color:var(--ink2);margin-bottom:4px}
 .vs-context span{color:var(--accent);font-weight:600}
 
 /* ── 24H COMPARISON CHART ── */
-.comparison-wrap{
-  padding:20px;border-top:1px solid var(--rule);
-}
-.comparison-title{
-  font-family:var(--font-mono);font-size:10px;
-  letter-spacing:0.1em;text-transform:uppercase;
-  color:var(--muted);margin-bottom:12px;
-}
+.comparison-wrap{padding:20px;border-top:1px solid var(--rule)}
+.comparison-title{font-family:var(--font-mono);font-size:10px;letter-spacing:0.1em;text-transform:uppercase;color:var(--muted);margin-bottom:12px}
+
 /* ── ACTIVITY FEED ── */
 .activity-grid{display:grid;grid-template-columns:1fr 1fr}
 .activity-col{padding:16px 20px}
@@ -526,6 +226,8 @@ body{background:var(--bg);color:var(--ink);font-family:var(--font-body);min-heig
 .health-badge.healthy{background:var(--green-light);color:var(--green)}
 .health-badge.moderate{background:var(--amber-light);color:var(--amber)}
 .health-badge.busy{background:var(--accent2-light);color:var(--accent2)}
+.window-btn.active{background:var(--accent)!important;color:#fff!important;border-color:var(--accent)!important}
+
 /* responsive */
 @media(max-width:960px){
   .main-grid{grid-template-columns:1fr}
@@ -540,7 +242,6 @@ body{background:var(--bg);color:var(--ink);font-family:var(--font-body);min-heig
 </head>
 <body>
 
-<!-- ── MASTHEAD ── -->
 <header class="masthead">
   <div class="masthead-top">
     <div>
@@ -559,13 +260,9 @@ body{background:var(--bg);color:var(--ink);font-family:var(--font-body);min-heig
   </nav>
 </header>
 
-<!-- ══════════════════════════════════════
-     TAB 1 — LIVE UTILIZATION
-══════════════════════════════════════ -->
 <div class="tab-content active" id="content-live">
 <div class="container">
 
-  <!-- Stat Strip -->
   <div class="stat-strip" style="grid-template-columns:repeat(6,1fr)">
     <div class="stat-block">
       <div class="stat-block-label">Stations Online</div>
@@ -605,7 +302,6 @@ body{background:var(--bg);color:var(--ink);font-family:var(--font-body);min-heig
     </div>
   </div>
 
-  <!-- Vs Expected Banner -->
   <div class="vs-expected typical" id="vsExpected">
     <div class="vs-badge typical" id="vsBadge">—</div>
     <div class="vs-details">
@@ -618,7 +314,6 @@ body{background:var(--bg);color:var(--ink);font-family:var(--font-body);min-heig
     </div>
   </div>
 
-  <!-- Recent Activity Panel -->
   <div class="panel" style="margin-bottom:20px">
     <div class="panel-head">
       <span class="panel-head-title">Recent Activity</span>
@@ -634,9 +329,7 @@ body{background:var(--bg);color:var(--ink);font-family:var(--font-body);min-heig
     </div>
   </div>
 
-  <!-- Main Grid -->
   <div class="main-grid">
-    <!-- Station List -->
     <div class="panel">
       <div class="panel-head">
         <span class="panel-head-title">Stations</span>
@@ -647,9 +340,7 @@ body{background:var(--bg);color:var(--ink);font-family:var(--font-body);min-heig
       </div>
     </div>
 
-    <!-- Right column -->
     <div class="right-col">
-      <!-- Map -->
       <div id="map-wrap">
         <div id="map"></div>
         <div class="map-label">📍 Bay Ridge, Brooklyn</div>
@@ -661,7 +352,6 @@ body{background:var(--bg);color:var(--ink);font-family:var(--font-body);min-heig
         </div>
       </div>
 
-      <!-- Tide Chart -->
       <div class="tide-panel">
         <div class="panel-head">
           <span class="panel-head-title">The Commuter Tide</span>
@@ -672,7 +362,7 @@ body{background:var(--bg);color:var(--ink);font-family:var(--font-body);min-heig
             <button class="tide-btn active" onclick="showTide('weekday')" id="tide-weekday">Weekday</button>
             <button class="tide-btn" onclick="showTide('weekend')" id="tide-weekend">Weekend</button>
           </div>
-          <div class="tide-note" id="tide-note">Outbound (leaving Bay Ridge) peaks at 7–8 AM. Inbound (returning) peaks at 5 PM.</div>
+          <div class="tide-note" id="tide-note">Outbound peaks at 7–8 AM, inbound peaks at 5 PM — a clear commuter signature.</div>
           <canvas id="tideChart" height="160"></canvas>
         </div>
         <div class="comparison-wrap">
@@ -685,13 +375,9 @@ body{background:var(--bg);color:var(--ink);font-family:var(--font-body);min-heig
 </div>
 </div>
 
-<!-- ══════════════════════════════════════
-     TAB 2 — HISTORICAL & IMPACT
-══════════════════════════════════════ -->
 <div class="tab-content" id="content-hist">
 <div class="hist-container">
 
-  <!-- 01 — THE EXPANSION -->
   <div class="expansion-section">
     <div class="section-head">
       <span class="section-number">01</span>
@@ -704,15 +390,12 @@ body{background:var(--bg);color:var(--ink);font-family:var(--font-body);min-heig
       <strong>44 more stations opened</strong> — one of the fastest neighborhood expansions in NYC Citi Bike history.
       The network went from a pilot to a real transportation layer almost overnight.
     </p>
-
-    <!-- Timeline bars -->
     <div class="timeline-grid" id="timelineGrid"></div>
     <div class="timeline-legend">
       <div class="tl-legend-item"><div class="tl-dot" style="background:var(--accent)"></div>Original 5 stations</div>
       <div class="tl-legend-item"><div class="tl-dot" style="background:var(--amber)"></div>New stations (2025 expansion)</div>
       <div class="tl-legend-item" style="margin-left:auto;color:var(--muted)">Bar height = monthly trips</div>
     </div>
-
     <div class="expansion-stats">
       <div class="exp-stat">
         <div class="exp-stat-val">49</div>
@@ -729,21 +412,18 @@ body{background:var(--bg);color:var(--ink);font-family:var(--font-body);min-heig
     </div>
   </div>
 
-  <!-- 02 — PROOF OF CONCEPT -->
   <div class="proof-section">
     <div class="section-head">
       <span class="section-number">02</span>
       <span class="section-title">What the Original 5 Prove</span>
       <span class="section-subtitle">16 months of clean data</span>
     </div>
-
     <div class="poc-grid">
       <div class="poc-chart-wrap">
         <div class="poc-chart-title">Monthly trips per station</div>
         <div class="poc-chart-headline">Consistent growth through summer 2025</div>
         <div class="sparkline-list" id="sparklineList"></div>
       </div>
-
       <div class="rhythm-chart-wrap">
         <div class="poc-chart-title">Hourly rhythm — original 5 stations</div>
         <div class="poc-chart-headline">A morning exodus, an evening return</div>
@@ -753,14 +433,12 @@ body{background:var(--bg);color:var(--ink);font-family:var(--font-body);min-heig
     </div>
   </div>
 
-  <!-- 03 — THE SPACE ARGUMENT -->
   <div class="impact-section">
     <div class="section-head">
       <span class="section-number">03</span>
       <span class="section-title">The Space Argument</span>
       <span class="section-subtitle">Trips per parking spot</span>
     </div>
-
     <div class="impact-centerpiece">
       <div class="impact-kicker">Space Productivity — Original 5 Stations · May 2024 – Dec 2025</div>
       <div class="impact-equation">
@@ -787,7 +465,6 @@ body{background:var(--bg);color:var(--ink);font-family:var(--font-body);min-heig
         economic value estimates use NYC DOT active transportation externality range of $1–$2/trip
       </div>
     </div>
-
     <div class="impact-secondary">
       <div class="impact-card">
         <div class="impact-card-icon">⚡</div>
@@ -807,7 +484,6 @@ body{background:var(--bg);color:var(--ink);font-family:var(--font-body);min-heig
     </div>
   </div>
 
-  <!-- 04 — WHERE WE GO -->
   <div class="dest-section">
     <div class="section-head">
       <span class="section-number">04</span>
@@ -838,7 +514,6 @@ body{background:var(--bg);color:var(--ink);font-family:var(--font-body);min-heig
 </div>
 </div>
 
-<!-- Detail Popup -->
 <div class="detail-popup" id="detailPopup">
   <div class="detail-head">
     <div class="detail-name" id="detailName">—</div>
@@ -854,7 +529,6 @@ body{background:var(--bg);color:var(--ink);font-family:var(--font-body);min-heig
   </div>
 </div>
 
-<!-- Scripts -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
 <script>
@@ -863,6 +537,7 @@ body{background:var(--bg);color:var(--ink);font-family:var(--font-body);min-heig
 // ═══════════════════════════════════════════
 const SUPABASE_URL = 'https://vqichsthcvkdcnekfggr.supabase.co';
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZxaWNoc3RoY3ZrZGNuZWtmZ2dyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzE3MjE5NzQsImV4cCI6MjA4NzI5Nzk3NH0.DIPu7nZu53c9RzGBMfO4UyfnOGF-3wWk-Dq07fNnJa4';
+
 
 async function sbGet(table, params) {
   const url = new URL(`${SUPABASE_URL}/rest/v1/${table}`);
@@ -878,10 +553,9 @@ async function sbGet(table, params) {
 }
 
 // ═══════════════════════════════════════════
-// HISTORICAL DATA (from Q3/Q4 2025 analysis)
+// HISTORICAL DATA
 // ═══════════════════════════════════════════
 const HISTORICAL = {
-  // Original 5 stations — monthly trips Jan-Dec 2025
   original5: {
     "4 Ave & Shore Road Dr":   [162,178,287,334,335,357,326,393,324,141,76,41],
     "3 Ave & Wakeman Pl":      [123,109,157,302,305,358,380,360,310,126,104,58],
@@ -890,8 +564,6 @@ const HISTORICAL = {
     "5 Ave & 67 St":           [110,143,192,220,271,304,338,359,339,163,134,62],
   },
   months12: ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"],
-
-  // Hourly outbound/inbound ratios from prediction model
   hourly: {
     weekday: {
       hours:    [5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22],
@@ -906,8 +578,6 @@ const HISTORICAL = {
       internal: [34,35,32,35,34,32,34,36,35,36,34,34,33,32,30,29,32,32],
     }
   },
-
-  // Top destinations & origins (Q3/Q4 2025)
   destinations: [
     {name:"59 St & 4 Ave",count:774},
     {name:"Shore Pkwy Greenway & Bay Ridge Ave",count:374},
@@ -932,8 +602,6 @@ const HISTORICAL = {
     {name:"50 St & 7 Ave",count:181},
     {name:"41 St & 4 Ave",count:176},
   ],
-
-  // Timeline data — stations per month + trips (original vs new)
   timeline: [
     {m:"Sep'24",orig:593,new:0,label:"Sep"},
     {m:"Oct'24",orig:614,new:0,label:"Oct"},
@@ -959,7 +627,6 @@ const ORIGINAL_STATIONS = new Set([
   "Wakeman Pl & Ridge Blvd","67 St & Erik Pl","5 Ave & 67 St"
 ]);
 
-// Bay Ridge polygon
 const BAY_RIDGE_POLYGON = [
   [40.642136,-74.028204],[40.642574,-74.033397],[40.639062,-74.037645],
   [40.625731,-74.042459],[40.615543,-74.041988],[40.609104,-74.038589],
@@ -979,13 +646,12 @@ function inBayRidge(lat,lon){
   return inside;
 }
 
-
 // ═══════════════════════════════════════════
 // VS EXPECTED — CHANGE OVER BASELINE
 // ═══════════════════════════════════════════
 let comparisonChart = null;
-let todayHourlyCache = [];  // today's trips per hour
-let baselineCache = {};     // { "1-8": 3.2, "2-17": 5.1 ... } day_of_week-hour -> avg trips
+let todayHourlyCache = [];
+let baselineCache = {};
 
 async function fetchVsExpected() {
   try {
@@ -995,8 +661,6 @@ async function fetchVsExpected() {
 
     const windowDays = 90;
     const windowStart = new Date(now - windowDays * 24 * 60 * 60 * 1000 - 10*60*1000).toISOString();
-    const todayStart = new Date(now);
-    todayStart.setUTCHours(0, 0, 0, 0);
 
     const trips = await sbGet('inferred_trips', {
       'select':       'detected_at,trips_departed,trips_arrived',
@@ -1008,7 +672,7 @@ async function fetchVsExpected() {
 
     if (!trips.length) return;
 
-    // Aggregate by day-of-week + hour
+    // Aggregate by day-of-week + hour for baseline
     const byDayHour = {};
     const byDate = {};
 
@@ -1039,12 +703,13 @@ async function fetchVsExpected() {
     });
     baselineCache = baseline;
 
-    // Rolling 60-minute window (consistent with Trips Last Hour stat)
+    // Use window._tripCache (populated by fetchRecentActivity) for current trips
     const oneHourAgo = new Date(now - 60 * 60 * 1000 - 10 * 60 * 1000);
-    const currentTrips = trips
+    const recentTrips = window._tripCache || [];
+    const currentTrips = recentTrips
       .filter(t => new Date(t.detected_at) >= oneHourAgo)
       .reduce((s, t) => s + (t.trips_departed||0) + (t.trips_arrived||0), 0);
-    
+
     const currentKey = `${dayOfWeek}-${currentHour}`;
     const expectedTrips = baseline[currentKey] || 0;
 
@@ -1090,11 +755,11 @@ async function fetchVsExpected() {
     document.getElementById('vsMeta').textContent =
       `Baseline: ${windowLabel} of data · updates every 10 min`;
 
-// Build today's hourly data from recent cache for accuracy
+    // Build today's hourly data for comparison chart
     const todayDateKey = now.toISOString().substring(0, 10);
     const todayByHour = byDate[todayDateKey] || {};
     todayHourlyCache = Array.from({length: 24}, (_, h) => todayByHour[h] || null);
-    
+
     const baselineByHour = Array.from({length: 24}, (_, h) => {
       const k = `${dayOfWeek}-${h}`;
       return baseline[k] ? Math.round(baseline[k] * 10) / 10 : null;
@@ -1106,14 +771,13 @@ async function fetchVsExpected() {
     console.error('fetchVsExpected failed:', e);
   }
 }
+
 function updateComparisonChart(todayData, baselineData, now) {
   const labels = Array.from({length: 24}, (_, h) =>
     h === 0 ? '12AM' : h < 12 ? `${h}AM` : h === 12 ? '12PM' : `${h-12}PM`
   );
 
   const currentHour = now.getUTCHours();
-
-  // Null out future hours for today
   const todayClean = todayData.map((v, h) => h <= currentHour ? v : null);
 
   const ctx = document.getElementById('comparisonChart').getContext('2d');
@@ -1199,8 +863,9 @@ function renderActivityWindow(trips, w) {
   const now = new Date();
   const cutoffs = { '2h': 2, '6h': 6, '24h': 24 };
   const hours = cutoffs[w];
-  const cutoff = new Date(now - hours * 60 * 60 * 1000 - 10 * 60 * 1000);
-  const oneHourAgo = new Date(now - 60 * 60 * 1000 - 10 * 60 * 1000);
+  const BUFFER_MS = 10 * 60 * 1000;
+  const cutoff = new Date(now - hours * 60 * 60 * 1000 - BUFFER_MS);
+  const oneHourAgo = new Date(now - 60 * 60 * 1000 - BUFFER_MS);
 
   const filtered = trips.filter(t => new Date(t.detected_at) >= cutoff);
   const lastHour = trips.filter(t => new Date(t.detected_at) >= oneHourAgo);
@@ -1232,12 +897,8 @@ function renderActivityWindow(trips, w) {
     byStation[t.station_name].arr += t.trips_arrived||0;
   });
 
-  const topDep = Object.entries(byStation)
-    .filter(([,v]) => v.dep > 0)
-    .sort((a,b) => b[1].dep - a[1].dep).slice(0, 8);
-  const topArr = Object.entries(byStation)
-    .filter(([,v]) => v.arr > 0)
-    .sort((a,b) => b[1].arr - a[1].arr).slice(0, 8);
+  const topDep = Object.entries(byStation).filter(([,v]) => v.dep > 0).sort((a,b) => b[1].dep - a[1].dep).slice(0, 8);
+  const topArr = Object.entries(byStation).filter(([,v]) => v.arr > 0).sort((a,b) => b[1].arr - a[1].arr).slice(0, 8);
 
   const depHTML = topDep.length ? topDep.map(([name,v]) => `
     <div class="activity-item">
@@ -1253,8 +914,7 @@ function renderActivityWindow(trips, w) {
       <span class="activity-count arr">+${v.arr}</span>
     </div>`).join('') : '<div class="activity-empty">No arrivals in this window</div>';
 
-  const lastTime = new Date(trips[0].detected_at)
-    .toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'});
+  const lastTime = new Date(trips[0].detected_at).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'});
 
   document.getElementById('activity-body').innerHTML = `
     <div class="activity-grid">
@@ -1270,9 +930,7 @@ function renderActivityWindow(trips, w) {
     <div class="network-health">
       <span class="health-badge ${healthClass}">${healthLabel}</span>
       <span>${depW} departures · ${arrW} arrivals in the last ${w}</span>
-      <span style="margin-left:auto;font-family:var(--font-mono);font-size:11px;color:var(--muted)">
-        via Supabase · last poll: ${lastTime}
-      </span>
+      <span style="margin-left:auto;font-family:var(--font-mono);font-size:11px;color:var(--muted)">via Supabase · last poll: ${lastTime}</span>
     </div>`;
 
   document.getElementById('activity-meta').textContent = `Last trip data: ${lastTime}`;
@@ -1280,7 +938,7 @@ function renderActivityWindow(trips, w) {
 
 async function fetchRecentActivity() {
   try {
-    const twentyFourHoursAgo = new Date(Date.now() - 24*60*60*1000).toISOString();
+    const twentyFourHoursAgo = new Date(Date.now() - 24*60*60*1000 - 10*60*1000).toISOString();
 
     const trips = await sbGet('inferred_trips', {
       'select':       'detected_at,station_name,trips_departed,trips_arrived',
@@ -1300,7 +958,6 @@ async function fetchRecentActivity() {
       return;
     }
 
-    // Cache for window switching without re-fetching
     window._tripCache = trips;
     renderActivityWindow(trips, currentWindow);
 
@@ -1312,6 +969,7 @@ async function fetchRecentActivity() {
     document.getElementById('s-trips-2h').textContent = '?';
   }
 }
+
 // ═══════════════════════════════════════════
 // LIVE DATA
 // ═══════════════════════════════════════════
@@ -1320,7 +978,7 @@ const STATUS_URL = 'https://gbfs.citibikenyc.com/gbfs/en/station_status.json';
 
 let stations=[], selectedId=null, map=null, markers={};
 
-window.addEventListener('load',()=>{
+window.addEventListener('load', () => {
   initMap();
   fetchLiveData();
   fetchRecentActivity().then(() => fetchVsExpected());
@@ -1358,8 +1016,7 @@ async function fetchLiveData(){
 }
 
 function renderError(msg){
-  document.getElementById('stationList').innerHTML=
-    `<div class="load-state" style="color:#e8383b">⚠ ${msg}</div>`;
+  document.getElementById('stationList').innerHTML=`<div class="load-state" style="color:#e8383b">⚠ ${msg}</div>`;
 }
 
 function updateSummary(){
@@ -1418,17 +1075,16 @@ function selectStation(id){
   document.getElementById('dCapFill').style.width=Math.round(s.num_bikes_available/cap*100)+'%';
   document.getElementById('detailPopup').classList.add('show');
 }
+
 function closeDetail(){
   document.getElementById('detailPopup').classList.remove('show');
   selectedId=null;
   document.querySelectorAll('.station-item').forEach(e=>e.classList.remove('selected'));
 }
 
-// ── MAP ──────────────────────────────────────────────────
 function initMap(){
   map=L.map('map',{center:[40.625,-74.028],zoom:14,zoomControl:true,attributionControl:false});
   L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png',{maxZoom:19}).addTo(map);
-  // Draw neighborhood boundary
   L.polygon(BAY_RIDGE_POLYGON,{color:'#0057b8',weight:2,fillColor:'#0057b8',fillOpacity:.05,dashArray:'6,4'}).addTo(map);
 }
 
@@ -1448,7 +1104,6 @@ function updateMarkers(){
   });
 }
 
-// ── TIDE CHART ────────────────────────────────────────────
 let tideChart=null, currentTide='weekday';
 
 function initTideChart(){
@@ -1489,7 +1144,6 @@ function showTide(mode){
     :'Weekends show a flatter pattern across all three types. Internal trips run slightly higher — more people riding within the neighborhood for leisure and errands.';
 }
 
-// ── HISTORICAL TAB ────────────────────────────────────────
 function buildHistoricalTab(){
   buildTimeline();
   buildSparklines();
@@ -1587,7 +1241,6 @@ function switchTab(tab){
 </script>
 
 <style>
-.window-btn.active{background:var(--accent)!important;color:#fff!important;border-color:var(--accent)!important}
 .br-tooltip{background:#fff!important;border:1px solid #dde1ea!important;color:#0f1117!important;font-family:'IBM Plex Sans',sans-serif;font-size:12px;border-radius:3px;box-shadow:0 2px 8px rgba(0,0,0,.1)}
 .br-tooltip::before{border-top-color:#dde1ea!important}
 </style>
