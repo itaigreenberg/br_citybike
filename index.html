@@ -1091,9 +1091,16 @@ async function fetchVsExpected() {
     document.getElementById('vsMeta').textContent =
       `Baseline: ${windowLabel} of data · updates every 10 min`;
 
-    // Build today's hourly data for comparison chart
+// Build today's hourly data from recent cache for accuracy
     const todayDateKey = now.toISOString().substring(0, 10);
-    const todayByHour = byDate[todayDateKey] || {};
+    const recentForChart = window._tripCache || trips;
+    const todayByHour = {};
+    recentForChart.forEach(t => {
+      if (t.detected_at.substring(0, 10) === todayDateKey) {
+        const h = new Date(t.detected_at).getUTCHours();
+        todayByHour[h] = (todayByHour[h] || 0) + (t.trips_departed||0) + (t.trips_arrived||0);
+      }
+    });
     todayHourlyCache = Array.from({length: 24}, (_, h) => todayByHour[h] || null);
 
     const baselineByHour = Array.from({length: 24}, (_, h) => {
