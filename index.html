@@ -1186,8 +1186,17 @@ let currentWindow = '2h';
 
 function setWindow(w) {
   currentWindow = w;
-  document.querySelectorAll('.window-btn').forEach(b => b.classList.remove('active'));
-  document.getElementById('win-' + w).classList.add('active');
+  document.querySelectorAll('.window-btn').forEach(b => {
+    b.classList.remove('active');
+    b.style.background = 'none';
+    b.style.color = 'var(--muted)';
+    b.style.borderColor = 'var(--rule)';
+  });
+  const active = document.getElementById('win-' + w);
+  active.classList.add('active');
+  active.style.background = 'var(--accent)';
+  active.style.color = '#fff';
+  active.style.borderColor = 'var(--accent)';
   renderActivityWindow(window._tripCache || [], w);
 }
 
