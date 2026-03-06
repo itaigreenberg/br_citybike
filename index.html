@@ -204,6 +204,19 @@ body{background:var(--bg);color:var(--ink);font-family:var(--font-body);min-heig
 .vs-context{font-family:var(--font-mono);font-size:12px;color:var(--ink2);margin-bottom:4px}
 .vs-context span{color:var(--accent);font-weight:600}
 
+/* ── WEATHER SCORE ── */
+.vs-weather{border-left:1px solid var(--rule);padding-left:24px;flex-shrink:0;min-width:160px}
+.vs-weather-score{display:flex;align-items:baseline;gap:6px;margin-bottom:6px}
+.vs-weather-score-num{font-family:var(--font-display);font-size:32px;font-weight:700;line-height:1}
+.vs-weather-score-num.great{color:var(--green)}
+.vs-weather-score-num.good{color:var(--accent)}
+.vs-weather-score-num.ok{color:var(--amber)}
+.vs-weather-score-num.poor{color:var(--accent2)}
+.vs-weather-score-label{font-family:var(--font-mono);font-size:10px;color:var(--muted);letter-spacing:0.06em;text-transform:uppercase}
+.vs-weather-icon{font-size:22px;margin-bottom:4px}
+.vs-weather-desc{font-size:12px;color:var(--ink2);font-weight:600;margin-bottom:2px}
+.vs-weather-details{font-family:var(--font-mono);font-size:10px;color:var(--muted)}
+
 /* ── 24H COMPARISON CHART ── */
 .comparison-wrap{padding:20px;border-top:1px solid var(--rule)}
 .comparison-title{font-family:var(--font-mono);font-size:10px;letter-spacing:0.1em;text-transform:uppercase;color:var(--muted);margin-bottom:12px}
@@ -311,6 +324,15 @@ body{background:var(--bg);color:var(--ink);font-family:var(--font-body);min-heig
     <div class="vs-right">
       <div class="vs-context" id="vsContext">—</div>
       <div class="vs-meta" id="vsMeta">Building baseline…</div>
+    </div>
+    <div class="vs-weather" id="vsWeather">
+      <div class="vs-weather-icon" id="weatherIcon">⏳</div>
+      <div class="vs-weather-desc" id="weatherDesc">Loading weather…</div>
+      <div class="vs-weather-score">
+        <span class="vs-weather-score-num" id="weatherScoreNum">—</span>
+        <span class="vs-weather-score-label">/10 biking</span>
+      </div>
+      <div class="vs-weather-details" id="weatherDetails">—</div>
     </div>
   </div>
 
@@ -652,6 +674,106 @@ let comparisonChart = null;
 let todayHourlyCache = [];
 let baselineCache = {};
 
+// ═══════════════════════════════════════════
+// WEATHER SCORE
+// ═══════════════════════════════════════════
+// Open-Meteo — free, no API key required
+// Bay Ridge, Brooklyn coords
+const WEATHER_LAT  = 40.6267;
+const WEATHER_LON  = -74.0282;
+
+function bikingWeatherScore(tempF, precipMm, windMph, weatherCode) {
+  let score = 10;
+
+  // Temperature (sweet spot 55-75°F)
+  if      (tempF < 25)  score -= 5;
+  else if (tempF < 35)  score -= 4;
+  else if (tempF < 45)  score -= 3;
+  else if (tempF < 55)  score -= 1;
+  else if (tempF > 90)  score -= 3;
+  else if (tempF > 82)  score -= 1;
+
+  // Precipitation (mm in last hour)
+  if      (precipMm > 5)  score -= 4;
+  else if (precipMm > 2)  score -= 3;
+  else if (precipMm > 0.5) score -= 2;
+  else if (precipMm > 0)  score -= 1;
+
+  // Wind (mph)
+  if      (windMph > 30) score -= 3;
+  else if (windMph > 20) score -= 2;
+  else if (windMph > 15) score -= 1;
+
+  // Weather code (WMO codes: 0=clear, 1-3=cloudy, 51-67=rain, 71-77=snow, 80-82=showers, 95+=storm)
+  if      (weatherCode >= 95) score -= 3;
+  else if (weatherCode >= 80) score -= 2;
+  else if (weatherCode >= 71) score -= 3; // snow
+  else if (weatherCode >= 51) score -= 2; // drizzle/rain
+  else if (weatherCode >= 45) score -= 1; // fog
+
+  return Math.max(0, Math.min(10, score));
+}
+
+function weatherCodeToIcon(code, isDay) {
+  if (code === 0)              return isDay ? '☀️' : '🌙';
+  if (code <= 2)               return isDay ? '🌤' : '🌤';
+  if (code === 3)              return '☁️';
+  if (code <= 48)              return '🌫';
+  if (code <= 67)              return '🌧';
+  if (code <= 77)              return '🌨';
+  if (code <= 82)              return '🌦';
+  return '⛈';
+}
+
+function weatherCodeToDesc(code) {
+  if (code === 0)  return 'Clear sky';
+  if (code === 1)  return 'Mostly clear';
+  if (code === 2)  return 'Partly cloudy';
+  if (code === 3)  return 'Overcast';
+  if (code <= 48)  return 'Foggy';
+  if (code <= 57)  return 'Drizzle';
+  if (code <= 67)  return 'Rainy';
+  if (code <= 77)  return 'Snowy';
+  if (code <= 82)  return 'Rain showers';
+  if (code <= 94)  return 'Hail';
+  return 'Thunderstorm';
+}
+
+async function fetchWeather() {
+  try {
+    const url = `https://api.open-meteo.com/v1/forecast?latitude=${WEATHER_LAT}&longitude=${WEATHER_LON}` +
+      `&current=temperature_2m,precipitation,wind_speed_10m,weather_code,is_day` +
+      `&temperature_unit=fahrenheit&wind_speed_unit=mph&precipitation_unit=mm&timezone=America%2FNew_York`;
+
+    const r = await fetch(url);
+    const d = await r.json();
+    const c = d.current;
+
+    const tempF      = Math.round(c.temperature_2m);
+    const precipMm   = c.precipitation || 0;
+    const windMph    = Math.round(c.wind_speed_10m);
+    const code       = c.weather_code;
+    const isDay      = c.is_day;
+
+    const score      = bikingWeatherScore(tempF, precipMm, windMph, code);
+    const icon       = weatherCodeToIcon(code, isDay);
+    const desc       = weatherCodeToDesc(code);
+    const scoreClass = score >= 8 ? 'great' : score >= 6 ? 'good' : score >= 4 ? 'ok' : 'poor';
+
+    document.getElementById('weatherIcon').textContent    = icon;
+    document.getElementById('weatherDesc').textContent    = desc;
+    document.getElementById('weatherScoreNum').textContent = score;
+    document.getElementById('weatherScoreNum').className  = `vs-weather-score-num ${scoreClass}`;
+    document.getElementById('weatherDetails').textContent =
+      `${tempF}°F · ${precipMm > 0 ? precipMm + 'mm rain · ' : 'dry · '}${windMph} mph wind`;
+
+  } catch(e) {
+    console.error('Weather fetch failed:', e);
+    document.getElementById('weatherDesc').textContent = 'Weather unavailable';
+    document.getElementById('weatherScoreNum').textContent = '?';
+  }
+}
+
 async function fetchVsExpected() {
   try {
     const now = new Date();
@@ -989,8 +1111,10 @@ window.addEventListener('load', () => {
   initMap();
   fetchLiveData();
   fetchRecentActivity().then(() => fetchVsExpected());
+  fetchWeather();
   setInterval(fetchLiveData, 120000);
   setInterval(() => fetchRecentActivity().then(() => fetchVsExpected()), 600000);
+  setInterval(fetchWeather, 600000);
   buildHistoricalTab();
   initTideChart();
   initRhythmChart();
