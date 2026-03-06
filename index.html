@@ -1065,7 +1065,8 @@ async function fetchVsExpected() {
     badge.className  = `vs-badge ${direction}`;
 
     const dayNames = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
-    const hourLabel = `${currentHour > 12 ? currentHour-12 : currentHour || 12}${currentHour >= 12 ? 'PM' : 'AM'}`;
+    const localHour = now.getHours();
+    const hourLabel = `${localHour > 12 ? localHour-12 : localHour || 12}${localHour >= 12 ? 'PM' : 'AM'}`;
 
     if (direction === 'typical') {
       badge.textContent = '≈';
