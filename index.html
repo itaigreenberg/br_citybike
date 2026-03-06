@@ -454,6 +454,60 @@ body{background:var(--bg);color:var(--ink);font-family:var(--font-body);min-heig
 }
 @keyframes spin{to{transform:rotate(360deg)}}
 
+
+/* ── VS EXPECTED BANNER ── */
+.vs-expected{
+  background:var(--surface);border:1px solid var(--rule);
+  border-radius:4px;padding:20px 28px;
+  margin-bottom:20px;
+  display:flex;align-items:center;gap:24px;
+  position:relative;overflow:hidden;
+}
+.vs-expected::before{
+  content:'';position:absolute;left:0;top:0;bottom:0;
+  width:4px;background:var(--accent);
+  transition:background .4s;
+}
+.vs-expected.above::before{background:var(--accent2)}
+.vs-expected.below::before{background:var(--green)}
+.vs-expected.typical::before{background:var(--muted)}
+.vs-badge{
+  font-family:var(--font-display);
+  font-size:48px;font-weight:900;line-height:1;
+  flex-shrink:0;min-width:120px;
+}
+.vs-badge.above{color:var(--accent2)}
+.vs-badge.below{color:var(--green)}
+.vs-badge.typical{color:var(--muted)}
+.vs-details{flex:1}
+.vs-headline{
+  font-size:16px;font-weight:600;
+  color:var(--ink);margin-bottom:4px;
+}
+.vs-sub{font-size:13px;color:var(--muted);line-height:1.5}
+.vs-meta{
+  font-family:var(--font-mono);font-size:10px;
+  color:var(--muted);letter-spacing:0.06em;
+  text-transform:uppercase;
+}
+.vs-right{
+  text-align:right;flex-shrink:0;
+}
+.vs-context{
+  font-family:var(--font-mono);font-size:12px;
+  color:var(--ink2);margin-bottom:4px;
+}
+.vs-context span{color:var(--accent);font-weight:600}
+
+/* ── 24H COMPARISON CHART ── */
+.comparison-wrap{
+  padding:20px;border-top:1px solid var(--rule);
+}
+.comparison-title{
+  font-family:var(--font-mono);font-size:10px;
+  letter-spacing:0.1em;text-transform:uppercase;
+  color:var(--muted);margin-bottom:12px;
+}
 /* ── ACTIVITY FEED ── */
 .activity-grid{display:grid;grid-template-columns:1fr 1fr}
 .activity-col{padding:16px 20px}
@@ -551,6 +605,19 @@ body{background:var(--bg);color:var(--ink);font-family:var(--font-body);min-heig
     </div>
   </div>
 
+  <!-- Vs Expected Banner -->
+  <div class="vs-expected typical" id="vsExpected">
+    <div class="vs-badge typical" id="vsBadge">—</div>
+    <div class="vs-details">
+      <div class="vs-headline" id="vsHeadline">Calculating expected activity…</div>
+      <div class="vs-sub" id="vsSub">Comparing current hour against rolling baseline</div>
+    </div>
+    <div class="vs-right">
+      <div class="vs-context" id="vsContext">—</div>
+      <div class="vs-meta" id="vsMeta">Building baseline…</div>
+    </div>
+  </div>
+
   <!-- Recent Activity Panel -->
   <div class="panel" style="margin-bottom:20px">
     <div class="panel-head">
@@ -607,6 +674,10 @@ body{background:var(--bg);color:var(--ink);font-family:var(--font-body);min-heig
           </div>
           <div class="tide-note" id="tide-note">Outbound (leaving Bay Ridge) peaks at 7–8 AM. Inbound (returning) peaks at 5 PM.</div>
           <canvas id="tideChart" height="160"></canvas>
+        </div>
+        <div class="comparison-wrap">
+          <div class="comparison-title">Today vs rolling average — trips per hour</div>
+          <canvas id="comparisonChart" height="100"></canvas>
         </div>
       </div>
     </div>
@@ -908,6 +979,206 @@ function inBayRidge(lat,lon){
   return inside;
 }
 
+
+// ═══════════════════════════════════════════
+// VS EXPECTED — CHANGE OVER BASELINE
+// ═══════════════════════════════════════════
+let comparisonChart = null;
+let todayHourlyCache = [];  // today's trips per hour
+let baselineCache = {};     // { "1-8": 3.2, "2-17": 5.1 ... } day_of_week-hour -> avg trips
+
+async function fetchVsExpected() {
+  try {
+    const now = new Date();
+    const dayOfWeek = now.getUTCDay();   // 0=Sun, 1=Mon ... 6=Sat
+    const currentHour = now.getUTCHours();
+
+    // Fetch last 90 days of inferred trips grouped by hour (capped for seasonal relevance)
+    const windowDays = 90;
+    const thirteenDaysAgo = new Date(now - windowDays * 24 * 60 * 60 * 1000).toISOString();
+    const todayStart = new Date(now);
+    todayStart.setUTCHours(0, 0, 0, 0);
+
+    // Get all trips in rolling window (non-rebalance)
+    const trips = await sbGet('inferred_trips', {
+      'select':       'detected_at,trips_departed,trips_arrived',
+      'detected_at':  `gte.${thirteenDaysAgo}`,
+      'is_rebalance': 'eq.false',
+      'order':        'detected_at.asc',
+      'limit':        '5000',
+    });
+
+    if (!trips.length) return;
+
+    // Aggregate trips by day-of-week + hour
+    const byDayHour = {};  // "dow-hour" -> [trip counts per occurrence]
+    const byDate = {};     // "YYYY-MM-DD" -> { hour -> count }
+
+    trips.forEach(t => {
+      const d = new Date(t.detected_at);
+      const dow  = d.getUTCDay();
+      const hour = d.getUTCHours();
+      const key  = `${dow}-${hour}`;
+      const dateKey = d.toISOString().substring(0, 10);
+      const count = (t.trips_departed || 0) + (t.trips_arrived || 0);
+
+      if (!byDayHour[key]) byDayHour[key] = [];
+      byDayHour[key].push(count);
+
+      if (!byDate[dateKey]) byDate[dateKey] = {};
+      byDate[dateKey][hour] = (byDate[dateKey][hour] || 0) + count;
+    });
+
+    // Compute baseline averages per day-hour
+    const baseline = {};
+    Object.entries(byDayHour).forEach(([key, counts]) => {
+      // Sum per polling interval, then normalize to hourly rate
+      const total = counts.reduce((a, b) => a + b, 0);
+      // Count distinct days that had this hour
+      const [dow, hour] = key.split('-').map(Number);
+      const daysWithThisHour = Object.keys(byDate).filter(date => {
+        return new Date(date).getUTCDay() === dow && byDate[date][hour] !== undefined;
+      }).length || 1;
+      baseline[key] = total / daysWithThisHour;
+    });
+    baselineCache = baseline;
+
+    // Current hour actual trips
+    const currentHourStart = new Date(now);
+    currentHourStart.setUTCMinutes(0, 0, 0);
+    const currentTrips = trips
+      .filter(t => new Date(t.detected_at) >= currentHourStart)
+      .reduce((s, t) => s + (t.trips_departed||0) + (t.trips_arrived||0), 0);
+
+    const currentKey = `${dayOfWeek}-${currentHour}`;
+    const expectedTrips = baseline[currentKey] || 0;
+
+    // Compute % change
+    let pctChange = 0;
+    let direction = 'typical';
+    if (expectedTrips > 0) {
+      pctChange = Math.round(((currentTrips - expectedTrips) / expectedTrips) * 100);
+      if (pctChange > 15)       direction = 'above';
+      else if (pctChange < -15) direction = 'below';
+      else                      direction = 'typical';
+    }
+
+    // Update banner
+    const banner = document.getElementById('vsExpected');
+    const badge  = document.getElementById('vsBadge');
+    banner.className = `vs-expected ${direction}`;
+    badge.className  = `vs-badge ${direction}`;
+
+    const dayNames = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
+    const hourLabel = `${currentHour > 12 ? currentHour-12 : currentHour || 12}${currentHour >= 12 ? 'PM' : 'AM'}`;
+
+    if (direction === 'typical') {
+      badge.textContent = '≈';
+      document.getElementById('vsHeadline').textContent = 'About typical for this time';
+    } else if (direction === 'above') {
+      badge.textContent = `+${pctChange}%`;
+      document.getElementById('vsHeadline').textContent = `${pctChange}% busier than usual`;
+    } else {
+      badge.textContent = `${pctChange}%`;
+      document.getElementById('vsHeadline').textContent = `${Math.abs(pctChange)}% quieter than usual`;
+    }
+
+    document.getElementById('vsSub').textContent =
+      `${currentTrips} trips observed this hour vs ~${Math.round(expectedTrips)} expected on a typical ${dayNames[dayOfWeek]} at ${hourLabel}`;
+    document.getElementById('vsContext').innerHTML =
+      `Expected: <span>~${Math.round(expectedTrips)}</span> · Actual: <span>${currentTrips}</span>`;
+    const daysCollected = Object.keys(byDate).length;
+    const windowLabel = daysCollected < 30 ? `${daysCollected} days (growing)` :
+                        daysCollected < 90 ? `${daysCollected} days` : '90 days';
+    document.getElementById('vsMeta').textContent =
+      `Baseline: ${windowLabel} of data · updates every 10 min`;
+
+    // Build today's hourly data for comparison chart
+    const todayDateKey = now.toISOString().substring(0, 10);
+    const todayByHour = byDate[todayDateKey] || {};
+    todayHourlyCache = Array.from({length: 24}, (_, h) => todayByHour[h] || null);
+
+    // Build baseline for current day-of-week
+    const baselineByHour = Array.from({length: 24}, (_, h) => {
+      const k = `${dayOfWeek}-${h}`;
+      return baseline[k] ? Math.round(baseline[k] * 10) / 10 : null;
+    });
+
+    updateComparisonChart(todayHourlyCache, baselineByHour, now);
+
+  } catch(e) {
+    console.error('fetchVsExpected failed:', e);
+  }
+}
+
+function updateComparisonChart(todayData, baselineData, now) {
+  const labels = Array.from({length: 24}, (_, h) =>
+    h === 0 ? '12AM' : h < 12 ? `${h}AM` : h === 12 ? '12PM' : `${h-12}PM`
+  );
+
+  const currentHour = now.getUTCHours();
+
+  // Null out future hours for today
+  const todayClean = todayData.map((v, h) => h <= currentHour ? v : null);
+
+  const ctx = document.getElementById('comparisonChart').getContext('2d');
+  if (comparisonChart) comparisonChart.destroy();
+
+  comparisonChart = new Chart(ctx, {
+    type: 'bar',
+    data: {
+      labels,
+      datasets: [
+        {
+          label: 'Today',
+          data: todayClean,
+          backgroundColor: todayClean.map((v, h) => {
+            if (v === null) return 'transparent';
+            const expected = baselineData[h] || 0;
+            if (expected === 0) return 'rgba(0,87,184,.5)';
+            const ratio = v / expected;
+            if (ratio > 1.15)      return 'rgba(232,56,59,.7)';
+            else if (ratio < 0.85) return 'rgba(0,135,90,.7)';
+            else                   return 'rgba(0,87,184,.6)';
+          }),
+          borderRadius: 2,
+          order: 1,
+        },
+        {
+          label: 'Typical',
+          data: baselineData,
+          type: 'line',
+          borderColor: 'rgba(139,146,168,.6)',
+          borderDash: [4, 3],
+          borderWidth: 1.5,
+          pointRadius: 0,
+          fill: false,
+          tension: 0.4,
+          order: 0,
+        }
+      ]
+    },
+    options: {
+      responsive: true,
+      plugins: {
+        legend: { labels: { color: '#8b92a8', font: { family: 'IBM Plex Mono', size: 10 } } },
+        tooltip: {
+          backgroundColor: '#fff', borderColor: '#dde1ea', borderWidth: 1,
+          titleColor: '#0f1117', bodyColor: '#3a3f52',
+          titleFont: { family: 'IBM Plex Mono' },
+          callbacks: {
+            label: ctx => `${ctx.dataset.label}: ${ctx.parsed.y !== null ? Math.round(ctx.parsed.y) + ' trips' : 'no data'}`
+          }
+        }
+      },
+      scales: {
+        x: { ticks: { color: '#8b92a8', font: { family: 'IBM Plex Mono', size: 9 }, maxRotation: 0, autoSkip: true, maxTicksLimit: 12 }, grid: { display: false } },
+        y: { ticks: { color: '#8b92a8', font: { family: 'IBM Plex Mono', size: 10 } }, grid: { color: '#f0f1f5' }, beginAtZero: true }
+      }
+    }
+  });
+}
+
 // ═══════════════════════════════════════════
 // SUPABASE REAL-TIME ACTIVITY
 // ═══════════════════════════════════════════
@@ -1049,8 +1320,10 @@ window.addEventListener('load',()=>{
   initMap();
   fetchLiveData();
   fetchRecentActivity();
+  fetchVsExpected();
   setInterval(fetchLiveData, 120000);
-  setInterval(fetchRecentActivity, 600000); // every 10 min
+  setInterval(fetchRecentActivity, 600000);
+  setInterval(fetchVsExpected, 600000);
   buildHistoricalTab();
   initTideChart();
   initRhythmChart();
