@@ -1204,8 +1204,8 @@ function renderActivityWindow(trips, w) {
   const now = new Date();
   const cutoffs = { '2h': 2, '6h': 6, '24h': 24 };
   const hours = cutoffs[w];
-  const cutoff = new Date(now - hours * 60 * 60 * 1000);
-  const oneHourAgo = new Date(now - 60 * 60 * 1000);
+  const cutoff = new Date(now - hours * 60 * 60 * 1000 - 10 * 60 * 1000);
+  const oneHourAgo = new Date(now - 60 * 60 * 1000 - 10 * 60 * 1000);
 
   const filtered = trips.filter(t => new Date(t.detected_at) >= cutoff);
   const lastHour = trips.filter(t => new Date(t.detected_at) >= oneHourAgo);
