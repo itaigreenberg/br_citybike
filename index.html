@@ -697,6 +697,9 @@ function bikingWeatherScore(tempF, precipMm, windMph, weatherCode) {
   else if (tempF > 88)  score -= 2;
   else if (tempF > 78)  score -= 1;
 
+  // Daylight bonus/penalty for casual riders
+  if (!isDay) score -= 2;
+
   // Precipitation — harsh penalty, casuals don't have rain gear
   if      (precipMm > 2)   score -= 5;
   else if (precipMm > 0.5) score -= 4;
