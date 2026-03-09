@@ -39,6 +39,13 @@ body{background:var(--bg);color:var(--ink);font-family:var(--font-body);min-heig
 .live-dot{width:7px;height:7px;border-radius:50%;background:var(--green);animation:blink 2s infinite}
 @keyframes blink{0%,100%{opacity:1}50%{opacity:.3}}
 .updated-text{font-family:var(--font-mono);font-size:11px;color:var(--muted)}
+.health-indicator{display:flex;align-items:center;gap:6px;font-family:var(--font-mono);font-size:11px;padding:5px 12px;border-radius:3px;border:1px solid var(--rule);transition:all .4s}
+.health-indicator.healthy{display:none}
+.health-indicator.warning{background:var(--amber-light);border-color:var(--amber);color:var(--amber)}
+.health-indicator.critical{background:var(--accent2-light);border-color:var(--accent2);color:var(--accent2)}
+.health-dot{width:7px;height:7px;border-radius:50%;flex-shrink:0}
+.health-indicator.warning .health-dot{background:var(--amber)}
+.health-indicator.critical .health-dot{background:var(--accent2);animation:blink 1s infinite}
 .refresh-btn{font-family:var(--font-mono);font-size:11px;background:none;border:1px solid var(--rule);border-radius:3px;padding:5px 12px;cursor:pointer;color:var(--ink2);transition:all .2s}
 .refresh-btn:hover{border-color:var(--accent);color:var(--accent)}
 .tab-nav{display:flex;gap:0;padding:0}
@@ -264,6 +271,10 @@ body{background:var(--bg);color:var(--ink);font-family:var(--font-body);min-heig
     </div>
     <div class="masthead-right">
       <div class="live-pill"><div class="live-dot"></div>LIVE</div>
+      <div class="health-indicator healthy" id="healthIndicator">
+        <div class="health-dot"></div>
+        <span id="healthText">—</span>
+      </div>
       <span class="updated-text" id="lastUpdated">—</span>
       <button class="refresh-btn" onclick="fetchLiveData()">↻ Refresh</button>
     </div>
@@ -1113,12 +1124,31 @@ const STATUS_URL = 'https://gbfs.citibikenyc.com/gbfs/en/station_status.json';
 
 let stations=[], selectedId=null, map=null, markers={};
 
+function checkPollerHealth() {
+  if (!window._lastPollTime) return;
+  const minutesAgo = Math.round((Date.now() - window._lastPollTime) / 60000);
+  const indicator  = document.getElementById('healthIndicator');
+  const text       = document.getElementById('healthText');
+
+  if (minutesAgo < 5) {
+    indicator.className = 'health-indicator healthy';
+  } else if (minutesAgo < 15) {
+    indicator.className = 'health-indicator warning';
+    text.textContent = `No data for ${minutesAgo}m`;
+  } else {
+    indicator.className = 'health-indicator critical';
+    text.textContent = `Poller down ${minutesAgo}m`;
+  }
+}
+
+  
 window.addEventListener('load', () => {
   initMap();
   fetchLiveData();
   fetchRecentActivity().then(() => fetchVsExpected());
   fetchWeather();
   setInterval(fetchLiveData, 120000);
+  setInterval(checkPollerHealth, 60000);
   setInterval(() => fetchRecentActivity().then(() => fetchVsExpected()), 600000);
   setInterval(fetchWeather, 600000);
   buildHistoricalTab();
@@ -1144,8 +1174,10 @@ async function fetchLiveData(){
       };
     }).sort((a,b)=>b.num_bikes_available-a.num_bikes_available);
     updateSummary();renderStationList();updateMarkers();
+    const updateTime = new Date();
     document.getElementById('lastUpdated').textContent=
-      'Updated '+new Date().toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'});
+      'Updated '+updateTime.toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'});
+    window._lastPollTime = updateTime;
   }catch(e){
     console.error(e);
     renderError('Could not load live data. Check your connection or run via local server.');
