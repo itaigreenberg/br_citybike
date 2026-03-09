@@ -200,10 +200,15 @@ body{background:var(--bg);color:var(--ink);font-family:var(--font-body);min-heig
 .vs-expected.above::before{background:var(--accent2)}
 .vs-expected.below::before{background:var(--green)}
 .vs-expected.typical::before{background:var(--muted)}
-.vs-badge{font-family:var(--font-display);font-size:48px;font-weight:900;line-height:1;flex-shrink:0;min-width:120px}
-.vs-badge.above{color:var(--accent2)}
-.vs-badge.below{color:var(--green)}
-.vs-badge.typical{color:var(--muted)}
+.vs-badge{display:flex;align-items:baseline;gap:10px;flex-shrink:0;min-width:140px}
+.vs-badge-delta{font-family:var(--font-display);font-size:48px;font-weight:900;line-height:1}
+.vs-badge-delta.above{color:var(--accent2)}
+.vs-badge-delta.below{color:var(--green)}
+.vs-badge-delta.typical{color:var(--muted)}
+.vs-badge-pct{font-family:var(--font-mono);font-size:13px;font-weight:600;align-self:flex-end;padding-bottom:6px}
+.vs-badge-pct.above{color:var(--accent2)}
+.vs-badge-pct.below{color:var(--green)}
+.vs-badge-pct.typical{color:var(--muted)}
 .vs-details{flex:1}
 .vs-headline{font-size:16px;font-weight:600;color:var(--ink);margin-bottom:4px}
 .vs-sub{font-size:13px;color:var(--muted);line-height:1.5}
@@ -328,7 +333,10 @@ body{background:var(--bg);color:var(--ink);font-family:var(--font-body);min-heig
   </div>
 
   <div class="vs-expected typical" id="vsExpected">
-    <div class="vs-badge typical" id="vsBadge">—</div>
+    <div class="vs-badge">
+      <span class="vs-badge-delta typical" id="vsDelta">—</span>
+      <span class="vs-badge-pct typical" id="vsPct"></span>
+    </div>
     <div class="vs-details">
       <div class="vs-headline" id="vsHeadline">Calculating expected activity…</div>
       <div class="vs-sub" id="vsSub">Comparing current hour against rolling baseline</div>
@@ -863,29 +871,36 @@ async function fetchVsExpected() {
       else                      direction = 'typical';
     }
 
-    // Update banner
+// Update banner
     const banner = document.getElementById('vsExpected');
-    const badge  = document.getElementById('vsBadge');
     banner.className = `vs-expected ${direction}`;
-    badge.className  = `vs-badge ${direction}`;
 
+    const deltaEl = document.getElementById('vsDelta');
+    const pctEl   = document.getElementById('vsPct');
+    deltaEl.className = `vs-badge-delta ${direction}`;
+    pctEl.className   = `vs-badge-pct ${direction}`;
+
+    const rawDelta = currentTrips - Math.round(expectedTrips);
     const dayNames = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
     const localHour = now.getHours();
     const hourLabel = `${localHour > 12 ? localHour-12 : localHour || 12}${localHour >= 12 ? 'PM' : 'AM'}`;
 
     if (direction === 'typical') {
-      badge.textContent = '≈';
+      deltaEl.textContent = '≈';
+      pctEl.textContent   = '';
       document.getElementById('vsHeadline').textContent = 'About typical for this time';
     } else if (direction === 'above') {
-      badge.textContent = `+${pctChange}%`;
-      document.getElementById('vsHeadline').textContent = `${pctChange}% busier than usual`;
+      deltaEl.textContent = `+${rawDelta}`;
+      pctEl.textContent   = `+${pctChange}%`;
+      document.getElementById('vsHeadline').textContent = `trips above expected`;
     } else {
-      badge.textContent = `${pctChange}%`;
-      document.getElementById('vsHeadline').textContent = `${Math.abs(pctChange)}% quieter than usual`;
+      deltaEl.textContent = `${rawDelta}`;
+      pctEl.textContent   = `${pctChange}%`;
+      document.getElementById('vsHeadline').textContent = `trips below expected`;
     }
 
     document.getElementById('vsSub').textContent =
-      `${currentTrips} trips in the last hour vs ~${Math.round(expectedTrips)} expected on a typical ${dayNames[dayOfWeek]} at ${hourLabel}`;
+      `${currentTrips} actual vs ~${Math.round(expectedTrips)} expected · typical ${dayNames[dayOfWeek]} at ${hourLabel}`;
     document.getElementById('vsContext').innerHTML =
       `Expected: <span>~${Math.round(expectedTrips)}</span> · Actual: <span>${currentTrips}</span>`;
 
