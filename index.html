@@ -686,7 +686,7 @@ let baselineCache = {};
 const WEATHER_LAT  = 40.6267;
 const WEATHER_LON  = -74.0282;
 
-function bikingWeatherScore(tempF, precipMm, windMph, weatherCode) {
+function bikingWeatherScore(tempF, precipMm, windMph, weatherCode, isDay) {
   let score = 10;
 
   // Temperature — wide sweet spot 48-78°F for casual Citi Bike riders
