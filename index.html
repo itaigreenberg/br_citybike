@@ -787,7 +787,7 @@ async function fetchWeather() {
     const code       = c.weather_code;
     const isDay      = c.is_day;
 
-    const score      = bikingWeatherScore(tempF, precipMm, windMph, code);
+    const score      = bikingWeatherScore(tempF, precipMm, windMph, code, isDay);
     const icon       = weatherCodeToIcon(code, isDay);
     const desc       = weatherCodeToDesc(code);
     const scoreClass = score >= 8 ? 'great' : score >= 6 ? 'good' : score >= 4 ? 'ok' : 'poor';
