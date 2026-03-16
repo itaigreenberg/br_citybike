@@ -132,7 +132,7 @@ body{background:var(--bg);color:var(--ink);font-family:var(--font-body);min-heig
 .expansion-section{margin-bottom:48px}
 .expansion-lead{font-size:15px;line-height:1.7;color:var(--ink2);max-width:780px;margin-bottom:28px}
 .expansion-lead strong{color:var(--ink)}
-.timeline-grid{display:grid;grid-template-columns:repeat(12,1fr);gap:3px;margin-bottom:20px;align-items:end}
+.timeline-grid{display:grid;grid-template-columns:repeat(16,1fr);gap:3px;margin-bottom:20px;align-items:end}
 .timeline-col{display:flex;flex-direction:column;gap:3px}
 .timeline-month-label{font-family:var(--font-mono);font-size:9px;color:var(--muted);text-align:center;margin-top:6px;letter-spacing:0.04em}
 .timeline-bar{border-radius:2px 2px 0 0;transition:opacity .2s;cursor:default;min-height:4px}
@@ -232,7 +232,6 @@ body{background:var(--bg);color:var(--ink);font-family:var(--font-body);min-heig
 
 /* ── 24H COMPARISON CHART ── */
 .comparison-wrap{padding:20px;border-top:1px solid var(--rule)}
-.comparison-title{font-family:var(--font-mono);font-size:10px;letter-spacing:0.1em;text-transform:uppercase;color:var(--muted);margin-bottom:12px}
 
 /* ── ACTIVITY FEED ── */
 .activity-grid{display:grid;grid-template-columns:1fr 1fr}
@@ -401,27 +400,39 @@ body{background:var(--bg);color:var(--ink);font-family:var(--font-body);min-heig
         </div>
       </div>
 
-     <div class="tide-panel">
-      <div class="panel-head">
-        <span class="panel-head-title">Today vs Rolling Average</span>
-        <span class="panel-head-meta">Trips per hour · live data</span>
-      </div>
-      <div class="comparison-wrap" style="border-top:none">
-        <canvas id="comparisonChart" height="100"></canvas>
-      </div>
-      <div class="panel-head" style="border-top:1px solid var(--rule)">
-        <span class="panel-head-title">The Commuter Tide</span>
-        <span class="panel-head-meta">Based on Q3/Q4 2025 trip data</span>
-      </div>
-      <div class="tide-inner">
-        <div class="tide-toggle">
-          <button class="tide-btn active" onclick="showTide('weekday')" id="tide-weekday">Weekday</button>
-          <button class="tide-btn" onclick="showTide('weekend')" id="tide-weekend">Weekend</button>
+      <div class="tide-panel">
+        <div class="panel-head">
+          <span class="panel-head-title">Today vs Rolling Average</span>
+          <span class="panel-head-meta">Trips per hour · live data</span>
         </div>
-        <div class="tide-note" id="tide-note">Outbound peaks at 7–8 AM, inbound peaks at 5 PM — a clear commuter signature.</div>
-        <canvas id="tideChart" height="160"></canvas>
+        <div class="comparison-wrap" style="border-top:none">
+          <canvas id="comparisonChart" height="100"></canvas>
+        </div>
+        <div class="panel-head" style="border-top:1px solid var(--rule)">
+          <span class="panel-head-title">The Commuter Tide</span>
+          <span class="panel-head-meta">Q3/Q4 2025 · historical</span>
+        </div>
+        <div class="tide-inner">
+          <div class="tide-toggle">
+            <button class="tide-btn active" onclick="showTide('weekday')" id="tide-weekday">Weekday</button>
+            <button class="tide-btn" onclick="showTide('weekend')" id="tide-weekend">Weekend</button>
+          </div>
+          <div class="tide-note" id="tide-note">Outbound peaks at 7–8 AM, inbound peaks at 5 PM — a clear commuter signature.</div>
+          <canvas id="tideChart" height="160"></canvas>
         </div>
       </div>
+
+      <div class="tide-panel" id="dailyTrendPanel">
+        <div class="panel-head">
+          <span class="panel-head-title">Daily Trip Trend</span>
+          <span class="panel-head-meta" id="dailyTrendMeta">Loading…</span>
+        </div>
+        <div class="comparison-wrap" style="border-top:none">
+          <div class="tide-note" id="dailyTrendNote" style="margin-bottom:14px">Trips per day · bars = daily total · line = 7-day rolling average</div>
+          <canvas id="dailyTrendChart" height="120"></canvas>
+        </div>
+      </div>
+
     </div>
   </div>
 </div>
@@ -670,6 +681,7 @@ const HISTORICAL = {
     {m:"Oct'25",orig:762,new:5389,label:"Oct"},
     {m:"Nov'25",orig:568,new:5917,label:"Nov"},
     {m:"Dec'25",orig:283,new:4269,label:"Dec"},
+
   ],
 };
 
@@ -698,62 +710,42 @@ function inBayRidge(lat,lon){
 }
 
 // ═══════════════════════════════════════════
-// VS EXPECTED — CHANGE OVER BASELINE
-// ═══════════════════════════════════════════
-let comparisonChart = null;
-let todayHourlyCache = [];
-let baselineCache = {};
-
-// ═══════════════════════════════════════════
 // WEATHER SCORE
 // ═══════════════════════════════════════════
-// Open-Meteo — free, no API key required
-// Bay Ridge, Brooklyn coords
-const WEATHER_LAT  = 40.6267;
-const WEATHER_LON  = -74.0282;
+const WEATHER_LAT = 40.6267;
+const WEATHER_LON = -74.0282;
 
 function bikingWeatherScore(tempF, precipMm, windMph, weatherCode, isDay) {
   let score = 10;
-
-  // Temperature — wide sweet spot 48-78°F for casual Citi Bike riders
   if      (tempF < 28)  score -= 5;
   else if (tempF < 38)  score -= 3;
   else if (tempF < 42)  score -= 2;
   else if (tempF < 48)  score -= 1;
   else if (tempF > 88)  score -= 2;
   else if (tempF > 78)  score -= 1;
-
-  // Daylight bonus/penalty for casual riders
   if (!isDay) score -= 2;
-
-  // Precipitation — harsh penalty, casuals don't have rain gear
   if      (precipMm > 2)   score -= 5;
   else if (precipMm > 0.5) score -= 4;
   else if (precipMm > 0)   score -= 2;
-
-  // Wind (mph)
   if      (windMph > 30) score -= 3;
   else if (windMph > 20) score -= 2;
   else if (windMph > 15) score -= 1;
-
-  // Weather code — overcast (2-3) intentionally gets no penalty
   if      (weatherCode >= 95) score -= 3;
   else if (weatherCode >= 80) score -= 2;
   else if (weatherCode >= 71) score -= 3;
   else if (weatherCode >= 51) score -= 2;
   else if (weatherCode >= 45) score -= 1;
-
   return Math.max(0, Math.min(10, score));
 }
 
 function weatherCodeToIcon(code, isDay) {
-  if (code === 0)              return isDay ? '☀️' : '🌙';
-  if (code <= 2)               return isDay ? '🌤' : '🌤';
-  if (code === 3)              return '☁️';
-  if (code <= 48)              return '🌫';
-  if (code <= 67)              return '🌧';
-  if (code <= 77)              return '🌨';
-  if (code <= 82)              return '🌦';
+  if (code === 0) return isDay ? '☀️' : '🌙';
+  if (code <= 2)  return '🌤';
+  if (code === 3) return '☁️';
+  if (code <= 48) return '🌫';
+  if (code <= 67) return '🌧';
+  if (code <= 77) return '🌨';
+  if (code <= 82) return '🌦';
   return '⛈';
 }
 
@@ -776,120 +768,112 @@ async function fetchWeather() {
     const url = `https://api.open-meteo.com/v1/forecast?latitude=${WEATHER_LAT}&longitude=${WEATHER_LON}` +
       `&current=temperature_2m,precipitation,wind_speed_10m,weather_code,is_day` +
       `&temperature_unit=fahrenheit&wind_speed_unit=mph&precipitation_unit=mm&timezone=America%2FNew_York`;
-
     const r = await fetch(url);
     const d = await r.json();
     const c = d.current;
-
-    const tempF      = Math.round(c.temperature_2m);
-    const precipMm   = c.precipitation || 0;
-    const windMph    = Math.round(c.wind_speed_10m);
-    const code       = c.weather_code;
-    const isDay      = c.is_day;
-
+    const tempF    = Math.round(c.temperature_2m);
+    const precipMm = c.precipitation || 0;
+    const windMph  = Math.round(c.wind_speed_10m);
+    const code     = c.weather_code;
+    const isDay    = c.is_day;
     const score      = bikingWeatherScore(tempF, precipMm, windMph, code, isDay);
     const icon       = weatherCodeToIcon(code, isDay);
     const desc       = weatherCodeToDesc(code);
     const scoreClass = score >= 8 ? 'great' : score >= 6 ? 'good' : score >= 4 ? 'ok' : 'poor';
-
-    document.getElementById('weatherIcon').textContent    = icon;
-    document.getElementById('weatherDesc').textContent    = desc;
+    document.getElementById('weatherIcon').textContent     = icon;
+    document.getElementById('weatherDesc').textContent     = desc;
     document.getElementById('weatherScoreNum').textContent = score;
-    document.getElementById('weatherScoreNum').className  = `vs-weather-score-num ${scoreClass}`;
-    document.getElementById('weatherDetails').textContent =
+    document.getElementById('weatherScoreNum').className   = `vs-weather-score-num ${scoreClass}`;
+    document.getElementById('weatherDetails').textContent  =
       `${tempF}°F · ${precipMm > 0 ? precipMm + 'mm rain · ' : 'dry · '}${windMph} mph wind`;
-
   } catch(e) {
     console.error('Weather fetch failed:', e);
-    document.getElementById('weatherDesc').textContent = 'Weather unavailable';
+    document.getElementById('weatherDesc').textContent     = 'Weather unavailable';
     document.getElementById('weatherScoreNum').textContent = '?';
   }
 }
 
+// ═══════════════════════════════════════════
+// VS EXPECTED — CHANGE OVER BASELINE
+// ═══════════════════════════════════════════
+let comparisonChart = null;
+
 async function fetchVsExpected() {
   try {
-    const now = new Date();
-    const dayOfWeek = now.getUTCDay();
-    const currentHour = now.getUTCHours();
+    const now         = new Date();
+    const localDow    = now.getDay();   // local day-of-week for baseline key
+    const localHour   = now.getHours(); // local hour for baseline key
 
-    const windowDays = 90;
-    const windowStart = new Date(now - windowDays * 24 * 60 * 60 * 1000 - 10*60*1000).toISOString();
+    const windowStart = new Date(now - 90 * 24 * 60 * 60 * 1000 - 10*60*1000).toISOString();
 
     const trips = await sbGet('inferred_trips', {
-      'select':       'detected_at,trips_departed,trips_arrived',
-      'detected_at':  `gte.${windowStart}`,
-      'is_rebalance': 'eq.false',
-      'order':        'detected_at.asc',
-      'limit':        '5000',
+      select:       'detected_at,trips_departed,trips_arrived',
+      detected_at:  `gte.${windowStart}`,
+      is_rebalance: 'eq.false',
+      order:        'detected_at.asc',
+      limit:        '5000',
     });
 
     if (!trips.length) return;
 
-    // Aggregate by day-of-week + hour for baseline
+    // Aggregate using LOCAL time throughout — consistent dow + hour + date keys
     const byDayHour = {};
-    const byDate = {};
+    const byDate    = {};
 
     trips.forEach(t => {
-      const d = new Date(t.detected_at);
-      const dow  = d.getUTCDay();
-      const hour = d.getUTCHours();
-      const key  = `${dow}-${hour}`;
-      // Use local date string for today-vs-baseline chart so midnight UTC doesn't flip the date
-      const localDateKey = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
-      const localHour = d.getHours();
-      const count = (t.trips_departed || 0) + (t.trips_arrived || 0);
+      const d          = new Date(t.detected_at);
+      const dow        = d.getDay();
+      const h          = d.getHours();
+      const key        = `${dow}-${h}`;
+      const dateKey    = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+      const count      = (t.trips_departed || 0) + (t.trips_arrived || 0);
 
       if (!byDayHour[key]) byDayHour[key] = [];
       byDayHour[key].push(count);
 
-      if (!byDate[localDateKey]) byDate[localDateKey] = {};
-      byDate[localDateKey][localHour] = (byDate[localDateKey][localHour] || 0) + count;
+      if (!byDate[dateKey]) byDate[dateKey] = {};
+      byDate[dateKey][h] = (byDate[dateKey][h] || 0) + count;
     });
 
-    // Compute baseline averages
+    // Baseline: average trips per (local dow, local hour) slot
+    // denominator = days that actually had data in that slot
     const baseline = {};
     Object.entries(byDayHour).forEach(([key, counts]) => {
-      const total = counts.reduce((a, b) => a + b, 0);
-      const [dow, hour] = key.split('-').map(Number);
-      const daysWithThisHour = Object.keys(byDate).filter(date => {
-        return new Date(date).getUTCDay() === dow && byDate[date][hour] !== undefined;
+      const [dow, h] = key.split('-').map(Number);
+      const daysWithSlot = Object.keys(byDate).filter(date => {
+        const d = new Date(date + 'T12:00:00'); // noon local — avoids any DST edge
+        return d.getDay() === dow && byDate[date][h] !== undefined;
       }).length || 1;
-      baseline[key] = total / daysWithThisHour;
+      baseline[key] = counts.reduce((a, b) => a + b, 0) / daysWithSlot;
     });
-    baselineCache = baseline;
 
-    // Use window._tripCache (populated by fetchRecentActivity) for current trips
-    const oneHourAgo = new Date(now - 60 * 60 * 1000 - 10 * 60 * 1000);
+    // Current trips from the shared cache
+    const oneHourAgo  = new Date(now - 60 * 60 * 1000 - 10 * 60 * 1000);
     const recentTrips = window._tripCache || [];
     const currentTrips = recentTrips
       .filter(t => new Date(t.detected_at) >= oneHourAgo)
       .reduce((s, t) => s + (t.trips_departed||0) + (t.trips_arrived||0), 0);
 
-    const currentKey = `${dayOfWeek}-${currentHour}`;
+    const currentKey   = `${localDow}-${localHour}`;
     const expectedTrips = baseline[currentKey] || 0;
 
-    // Compute % change
-    let pctChange = 0;
-    let direction = 'typical';
+    let pctChange = 0, direction = 'typical';
     if (expectedTrips > 0) {
       pctChange = Math.round(((currentTrips - expectedTrips) / expectedTrips) * 100);
-      if (pctChange > 15)       direction = 'above';
+      if      (pctChange >  15) direction = 'above';
       else if (pctChange < -15) direction = 'below';
-      else                      direction = 'typical';
     }
 
-// Update banner
-    const banner = document.getElementById('vsExpected');
-    banner.className = `vs-expected ${direction}`;
+    // Update banner
+    const banner   = document.getElementById('vsExpected');
+    const deltaEl  = document.getElementById('vsDelta');
+    const pctEl    = document.getElementById('vsPct');
+    banner.className   = `vs-expected ${direction}`;
+    deltaEl.className  = `vs-badge-delta ${direction}`;
+    pctEl.className    = `vs-badge-pct ${direction}`;
 
-    const deltaEl = document.getElementById('vsDelta');
-    const pctEl   = document.getElementById('vsPct');
-    deltaEl.className = `vs-badge-delta ${direction}`;
-    pctEl.className   = `vs-badge-pct ${direction}`;
-
-    const rawDelta = currentTrips - Math.round(expectedTrips);
-    const dayNames = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
-    const localHour = now.getHours();
+    const rawDelta  = currentTrips - Math.round(expectedTrips);
+    const dayNames  = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
     const hourLabel = `${localHour > 12 ? localHour-12 : localHour || 12}${localHour >= 12 ? 'PM' : 'AM'}`;
 
     if (direction === 'typical') {
@@ -899,41 +883,38 @@ async function fetchVsExpected() {
     } else if (direction === 'above') {
       deltaEl.textContent = `+${rawDelta}`;
       pctEl.textContent   = `+${pctChange}%`;
-      document.getElementById('vsHeadline').textContent = `trips above expected`;
+      document.getElementById('vsHeadline').textContent = 'trips above expected';
     } else {
       deltaEl.textContent = `${rawDelta}`;
       pctEl.textContent   = `${pctChange}%`;
-      document.getElementById('vsHeadline').textContent = `trips below expected`;
+      document.getElementById('vsHeadline').textContent = 'trips below expected';
     }
 
     document.getElementById('vsSub').textContent =
-      `${currentTrips} actual vs ~${Math.round(expectedTrips)} expected · typical ${dayNames[dayOfWeek]} at ${hourLabel}`;
+      `${currentTrips} actual vs ~${Math.round(expectedTrips)} expected · typical ${dayNames[localDow]} at ${hourLabel}`;
     document.getElementById('vsContext').innerHTML =
       `Expected: <span>~${Math.round(expectedTrips)}</span> · Actual: <span>${currentTrips}</span>`;
 
     const daysCollected = Object.keys(byDate).length;
-    const windowLabel = daysCollected < 30 ? `${daysCollected} days (growing)` :
-                        daysCollected < 90 ? `${daysCollected} days` : '90 days';
+    const windowLabel   = daysCollected < 30 ? `${daysCollected} days (growing)` :
+                          daysCollected < 90 ? `${daysCollected} days` : '90 days';
     document.getElementById('vsMeta').textContent =
       `Baseline: ${windowLabel} of data · updates every 10 min`;
 
-    // Build today's hourly data for comparison chart
-    // Build today's bars from _tripCache (last 24h, already fetched) rather than
-    // the 90-day historical query — avoids any row-limit or date-key mismatch issues
+    // Today's hourly bars from _tripCache (local hours)
     const todayByHour = {};
     (window._tripCache || []).forEach(t => {
-      const d = new Date(t.detected_at);
-      const h = d.getHours(); // local hour
+      const h = new Date(t.detected_at).getHours();
       todayByHour[h] = (todayByHour[h] || 0) + (t.trips_departed || 0) + (t.trips_arrived || 0);
     });
-    todayHourlyCache = Array.from({length: 24}, (_, h) => todayByHour[h] || null);
+    const todayHourly = Array.from({length: 24}, (_, h) => todayByHour[h] || null);
 
     const baselineByHour = Array.from({length: 24}, (_, h) => {
-      const k = `${dayOfWeek}-${h}`;
+      const k = `${localDow}-${h}`;
       return baseline[k] ? Math.round(baseline[k] * 10) / 10 : null;
     });
 
-    updateComparisonChart(todayHourlyCache, baselineByHour, now);
+    updateComparisonChart(todayHourly, baselineByHour, now);
 
   } catch(e) {
     console.error('fetchVsExpected failed:', e);
@@ -941,12 +922,11 @@ async function fetchVsExpected() {
 }
 
 function updateComparisonChart(todayData, baselineData, now) {
-  const labels = Array.from({length: 24}, (_, h) =>
+  const labels      = Array.from({length: 24}, (_, h) =>
     h === 0 ? '12AM' : h < 12 ? `${h}AM` : h === 12 ? '12PM' : `${h-12}PM`
   );
-
-  const currentHour = now.getHours(); // local time — don't clip future bars using UTC
-  const todayClean = todayData.map((v, h) => h <= currentHour ? v : null);
+  const currentHour = now.getHours();
+  const todayClean  = todayData.map((v, h) => h <= currentHour ? v : null);
 
   const ctx = document.getElementById('comparisonChart').getContext('2d');
   if (comparisonChart) comparisonChart.destroy();
@@ -961,9 +941,9 @@ function updateComparisonChart(todayData, baselineData, now) {
           data: todayClean,
           backgroundColor: todayClean.map((v, h) => {
             if (v === null) return 'transparent';
-            const expected = baselineData[h] || 0;
-            if (expected === 0) return 'rgba(0,87,184,.5)';
-            const ratio = v / expected;
+            const exp = baselineData[h] || 0;
+            if (exp === 0) return 'rgba(0,87,184,.5)';
+            const ratio = v / exp;
             if (ratio > 1.15)      return 'rgba(232,56,59,.7)';
             else if (ratio < 0.85) return 'rgba(0,135,90,.7)';
             else                   return 'rgba(0,87,184,.6)';
@@ -993,9 +973,7 @@ function updateComparisonChart(todayData, baselineData, now) {
           backgroundColor: '#fff', borderColor: '#dde1ea', borderWidth: 1,
           titleColor: '#0f1117', bodyColor: '#3a3f52',
           titleFont: { family: 'IBM Plex Mono' },
-          callbacks: {
-            label: ctx => `${ctx.dataset.label}: ${ctx.parsed.y !== null ? Math.round(ctx.parsed.y) + ' trips' : 'no data'}`
-          }
+          callbacks: { label: ctx => `${ctx.dataset.label}: ${ctx.parsed.y !== null ? Math.round(ctx.parsed.y) + ' trips' : 'no data'}` }
         }
       },
       scales: {
@@ -1007,6 +985,134 @@ function updateComparisonChart(todayData, baselineData, now) {
 }
 
 // ═══════════════════════════════════════════
+// DAILY TRIP TREND
+// ═══════════════════════════════════════════
+let dailyTrendChart = null;
+
+async function fetchDailyTrend() {
+  try {
+    const since = new Date(Date.now() - 60 * 24 * 60 * 60 * 1000).toISOString();
+    const trips = await sbGet('inferred_trips', {
+      select:       'detected_at,trips_departed,trips_arrived',
+      detected_at:  `gte.${since}`,
+      is_rebalance: 'eq.false',
+      order:        'detected_at.asc',
+      limit:        '50000',
+    });
+
+    if (!trips.length) {
+      document.getElementById('dailyTrendMeta').textContent = 'No data yet';
+      return;
+    }
+
+    // Aggregate by local date
+    const byDate = {};
+    trips.forEach(t => {
+      const d       = new Date(t.detected_at);
+      const dateKey = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+      byDate[dateKey] = (byDate[dateKey] || 0) + (t.trips_departed || 0) + (t.trips_arrived || 0);
+    });
+
+    const dates  = Object.keys(byDate).sort();
+    const counts = dates.map(d => byDate[d]);
+
+    // 7-day rolling average
+    const rolling = counts.map((_, i) => {
+      const window = counts.slice(Math.max(0, i - 6), i + 1);
+      return Math.round(window.reduce((a, b) => a + b, 0) / window.length * 10) / 10;
+    });
+
+    // Short date labels
+    const monthNames = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+    const labels = dates.map(d => {
+      const [, m, day] = d.split('-');
+      return `${monthNames[parseInt(m)-1]} ${parseInt(day)}`;
+    });
+
+    // Meta line
+    const total = counts.reduce((a, b) => a + b, 0);
+    document.getElementById('dailyTrendMeta').textContent =
+      `${dates.length} days · ${total.toLocaleString()} total trips`;
+
+    // Trend note: compare last 7-day avg to prior 7-day avg
+    const avg7     = rolling[rolling.length - 1];
+    const avg7prev = rolling.length > 7 ? rolling[rolling.length - 8] : null;
+    let note = `Trips per day · bars = daily total · line = 7-day rolling avg (~${avg7}/day)`;
+    if (avg7prev !== null) {
+      const delta = Math.round(avg7 - avg7prev);
+      note += ` · ${delta >= 0 ? '+' : ''}${delta} vs week ago`;
+    }
+    document.getElementById('dailyTrendNote').textContent = note;
+
+    // Bar colors: above/below rolling avg
+    const barColors = counts.map((v, i) => {
+      const avg = rolling[i] || 0;
+      if (v > avg * 1.15)      return 'rgba(232,56,59,.65)';
+      else if (v < avg * 0.85) return 'rgba(0,135,90,.65)';
+      else                     return 'rgba(0,87,184,.55)';
+    });
+
+    const ctx = document.getElementById('dailyTrendChart').getContext('2d');
+    if (dailyTrendChart) dailyTrendChart.destroy();
+
+    dailyTrendChart = new Chart(ctx, {
+      type: 'bar',
+      data: {
+        labels,
+        datasets: [
+          {
+            label: 'Daily trips',
+            data: counts,
+            backgroundColor: barColors,
+            borderRadius: 2,
+            order: 1,
+          },
+          {
+            label: '7-day avg',
+            data: rolling,
+            type: 'line',
+            borderColor: 'rgba(139,146,168,.8)',
+            borderDash: [4, 3],
+            borderWidth: 1.5,
+            pointRadius: 0,
+            fill: false,
+            tension: 0.4,
+            order: 0,
+          }
+        ]
+      },
+      options: {
+        responsive: true,
+        plugins: {
+          legend: { labels: { color: '#8b92a8', font: { family: 'IBM Plex Mono', size: 10 } } },
+          tooltip: {
+            backgroundColor: '#fff', borderColor: '#dde1ea', borderWidth: 1,
+            titleColor: '#0f1117', bodyColor: '#3a3f52',
+            titleFont: { family: 'IBM Plex Mono' },
+            callbacks: { label: ctx => `${ctx.dataset.label}: ${Math.round(ctx.parsed.y)} trips` }
+          }
+        },
+        scales: {
+          x: {
+            ticks: { color: '#8b92a8', font: { family: 'IBM Plex Mono', size: 9 }, maxRotation: 45, autoSkip: true, maxTicksLimit: 14 },
+            grid: { display: false }
+          },
+          y: {
+            ticks: { color: '#8b92a8', font: { family: 'IBM Plex Mono', size: 10 } },
+            grid: { color: '#f0f1f5' },
+            beginAtZero: true,
+          }
+        }
+      }
+    });
+
+  } catch(e) {
+    console.error('fetchDailyTrend failed:', e);
+    document.getElementById('dailyTrendMeta').textContent = 'Could not load';
+  }
+}
+
+// ═══════════════════════════════════════════
 // SUPABASE REAL-TIME ACTIVITY
 // ═══════════════════════════════════════════
 let currentWindow = '2h';
@@ -1015,24 +1121,23 @@ function setWindow(w) {
   currentWindow = w;
   document.querySelectorAll('.window-btn').forEach(b => {
     b.classList.remove('active');
-    b.style.background = 'none';
-    b.style.color = 'var(--muted)';
-    b.style.borderColor = 'var(--rule)';
+    b.style.background   = 'none';
+    b.style.color        = 'var(--muted)';
+    b.style.borderColor  = 'var(--rule)';
   });
   const active = document.getElementById('win-' + w);
   active.classList.add('active');
-  active.style.background = 'var(--accent)';
-  active.style.color = '#fff';
+  active.style.background  = 'var(--accent)';
+  active.style.color       = '#fff';
   active.style.borderColor = 'var(--accent)';
   renderActivityWindow(window._tripCache || [], w);
 }
 
 function renderActivityWindow(trips, w) {
-  const now = new Date();
-  const cutoffs = { '2h': 2, '6h': 6, '24h': 24 };
-  const hours = cutoffs[w];
-  const BUFFER_MS = 10 * 60 * 1000;
-  const cutoff = new Date(now - hours * 60 * 60 * 1000 - BUFFER_MS);
+  const now        = new Date();
+  const cutoffs    = { '2h': 2, '6h': 6, '24h': 24 };
+  const BUFFER_MS  = 10 * 60 * 1000;
+  const cutoff     = new Date(now - cutoffs[w] * 60 * 60 * 1000 - BUFFER_MS);
   const oneHourAgo = new Date(now - 60 * 60 * 1000 - BUFFER_MS);
 
   const filtered = trips.filter(t => new Date(t.detected_at) >= cutoff);
@@ -1043,9 +1148,9 @@ function renderActivityWindow(trips, w) {
   const depW  = filtered.reduce((s,t) => s+(t.trips_departed||0), 0);
   const arrW  = filtered.reduce((s,t) => s+(t.trips_arrived||0), 0);
 
-  document.getElementById('s-trips-1h').textContent = dep1h + arr1h;
+  document.getElementById('s-trips-1h').textContent     = dep1h + arr1h;
   document.getElementById('s-trips-1h-sub').textContent = `${dep1h} out · ${arr1h} in`;
-  document.getElementById('s-trips-2h').textContent = depW + arrW;
+  document.getElementById('s-trips-2h').textContent     = depW + arrW;
   document.getElementById('s-trips-2h-sub').textContent = `${depW} out · ${arrW} in · last ${w}`;
 
   if (!filtered.length) {
@@ -1054,9 +1159,9 @@ function renderActivityWindow(trips, w) {
     return;
   }
 
-  const rate = dep1h + arr1h;
+  const rate        = dep1h + arr1h;
   const healthLabel = rate > 30 ? 'BUSY' : rate > 10 ? 'ACTIVE' : 'QUIET';
-  const healthClass = rate > 30 ? 'busy'  : rate > 10 ? 'moderate' : 'healthy';
+  const healthClass = rate > 30 ? 'busy' : rate > 10 ? 'moderate' : 'healthy';
 
   const byStation = {};
   filtered.forEach(t => {
@@ -1065,35 +1170,23 @@ function renderActivityWindow(trips, w) {
     byStation[t.station_name].arr += t.trips_arrived||0;
   });
 
-  const topDep = Object.entries(byStation).filter(([,v]) => v.dep > 0).sort((a,b) => b[1].dep - a[1].dep).slice(0, 8);
-  const topArr = Object.entries(byStation).filter(([,v]) => v.arr > 0).sort((a,b) => b[1].arr - a[1].arr).slice(0, 8);
+  const topDep = Object.entries(byStation).filter(([,v]) => v.dep > 0).sort((a,b) => b[1].dep - a[1].dep).slice(0,8);
+  const topArr = Object.entries(byStation).filter(([,v]) => v.arr > 0).sort((a,b) => b[1].arr - a[1].arr).slice(0,8);
 
-  const depHTML = topDep.length ? topDep.map(([name,v]) => `
-    <div class="activity-item">
-      <span class="activity-icon">🚲</span>
-      <span class="activity-station">${name}</span>
-      <span class="activity-count dep">-${v.dep}</span>
-    </div>`).join('') : '<div class="activity-empty">No departures in this window</div>';
+  const depHTML = topDep.length ? topDep.map(([name,v]) =>
+    `<div class="activity-item"><span class="activity-icon">🚲</span><span class="activity-station">${name}</span><span class="activity-count dep">-${v.dep}</span></div>`
+  ).join('') : '<div class="activity-empty">No departures in this window</div>';
 
-  const arrHTML = topArr.length ? topArr.map(([name,v]) => `
-    <div class="activity-item">
-      <span class="activity-icon">🅿️</span>
-      <span class="activity-station">${name}</span>
-      <span class="activity-count arr">+${v.arr}</span>
-    </div>`).join('') : '<div class="activity-empty">No arrivals in this window</div>';
+  const arrHTML = topArr.length ? topArr.map(([name,v]) =>
+    `<div class="activity-item"><span class="activity-icon">🅿️</span><span class="activity-station">${name}</span><span class="activity-count arr">+${v.arr}</span></div>`
+  ).join('') : '<div class="activity-empty">No arrivals in this window</div>';
 
   const lastTime = new Date(trips[0].detected_at).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'});
 
   document.getElementById('activity-body').innerHTML = `
     <div class="activity-grid">
-      <div class="activity-col">
-        <div class="activity-col-title">Top Departures · last ${w}</div>
-        ${depHTML}
-      </div>
-      <div class="activity-col">
-        <div class="activity-col-title">Top Arrivals · last ${w}</div>
-        ${arrHTML}
-      </div>
+      <div class="activity-col"><div class="activity-col-title">Top Departures · last ${w}</div>${depHTML}</div>
+      <div class="activity-col"><div class="activity-col-title">Top Arrivals · last ${w}</div>${arrHTML}</div>
     </div>
     <div class="network-health">
       <span class="health-badge ${healthClass}">${healthLabel}</span>
@@ -1106,22 +1199,21 @@ function renderActivityWindow(trips, w) {
 
 async function fetchRecentActivity() {
   try {
-    const twentyFourHoursAgo = new Date(Date.now() - 24*60*60*1000 - 10*60*1000).toISOString();
-
+    const since = new Date(Date.now() - 24*60*60*1000 - 10*60*1000).toISOString();
     const trips = await sbGet('inferred_trips', {
-      'select':       'detected_at,station_name,trips_departed,trips_arrived',
-      'detected_at':  `gte.${twentyFourHoursAgo}`,
-      'is_rebalance': 'eq.false',
-      'order':        'detected_at.desc',
-      'limit':        '1000'
+      select:       'detected_at,station_name,trips_departed,trips_arrived',
+      detected_at:  `gte.${since}`,
+      is_rebalance: 'eq.false',
+      order:        'detected_at.desc',
+      limit:        '1000'
     });
 
     if (!trips.length) {
       document.getElementById('activity-body').innerHTML =
         '<div class="activity-empty">No trip activity recorded yet — check back after a few more polling cycles.</div>';
-      document.getElementById('s-trips-1h').textContent = '0';
+      document.getElementById('s-trips-1h').textContent     = '0';
       document.getElementById('s-trips-1h-sub').textContent = 'No data yet';
-      document.getElementById('s-trips-2h').textContent = '0';
+      document.getElementById('s-trips-2h').textContent     = '0';
       document.getElementById('s-trips-2h-sub').textContent = 'No data yet';
       return;
     }
@@ -1151,89 +1243,89 @@ function checkPollerHealth() {
   const minutesAgo = Math.round((Date.now() - window._lastPollTime) / 60000);
   const indicator  = document.getElementById('healthIndicator');
   const text       = document.getElementById('healthText');
-
   if (minutesAgo < 5) {
     indicator.className = 'health-indicator healthy';
   } else if (minutesAgo < 15) {
     indicator.className = 'health-indicator warning';
-    text.textContent = `No data for ${minutesAgo}m`;
+    text.textContent    = `No data for ${minutesAgo}m`;
   } else {
     indicator.className = 'health-indicator critical';
-    text.textContent = `Poller down ${minutesAgo}m`;
+    text.textContent    = `Poller down ${minutesAgo}m`;
   }
 }
 
-  
 window.addEventListener('load', () => {
   initMap();
   fetchLiveData();
   fetchRecentActivity().then(() => fetchVsExpected());
   fetchWeather();
+  fetchDailyTrend();
   setInterval(fetchLiveData, 120000);
   setInterval(checkPollerHealth, 60000);
   setInterval(() => fetchRecentActivity().then(() => fetchVsExpected()), 600000);
   setInterval(fetchWeather, 600000);
+  setInterval(fetchDailyTrend, 3600000);
   buildHistoricalTab();
   initTideChart();
   initRhythmChart();
 });
 
-async function fetchLiveData(){
-  try{
-    const[iR,sR]=await Promise.all([fetch(INFO_URL),fetch(STATUS_URL)]);
-    const iD=await iR.json(), sD=await sR.json();
-    const sm={};sD.data.stations.forEach(s=>sm[s.station_id]=s);
-    const br=iD.data.stations.filter(s=>inBayRidge(s.lat,s.lon));
-    if(!br.length){renderError('No stations found in Bay Ridge.');return;}
-    stations=br.map(info=>{
-      const st=sm[info.station_id]||{};
-      return{...info,
-        num_bikes_available:st.num_bikes_available||0,
-        num_ebikes_available:st.num_ebikes_available||0,
-        num_docks_available:st.num_docks_available||0,
-        is_installed:st.is_installed||0,
-        is_renting:st.is_renting||0,
+async function fetchLiveData() {
+  try {
+    const [iR,sR] = await Promise.all([fetch(INFO_URL), fetch(STATUS_URL)]);
+    const iD = await iR.json(), sD = await sR.json();
+    const sm = {};
+    sD.data.stations.forEach(s => sm[s.station_id] = s);
+    const br = iD.data.stations.filter(s => inBayRidge(s.lat, s.lon));
+    if (!br.length) { renderError('No stations found in Bay Ridge.'); return; }
+    stations = br.map(info => {
+      const st = sm[info.station_id] || {};
+      return { ...info,
+        num_bikes_available:  st.num_bikes_available  || 0,
+        num_ebikes_available: st.num_ebikes_available || 0,
+        num_docks_available:  st.num_docks_available  || 0,
+        is_installed: st.is_installed || 0,
+        is_renting:   st.is_renting   || 0,
       };
-    }).sort((a,b)=>b.num_bikes_available-a.num_bikes_available);
-    updateSummary();renderStationList();updateMarkers();
-    const updateTime = new Date();
-    document.getElementById('lastUpdated').textContent=
-      'Updated '+updateTime.toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'});
-    window._lastPollTime = updateTime;
-  }catch(e){
+    }).sort((a,b) => b.num_bikes_available - a.num_bikes_available);
+    updateSummary(); renderStationList(); updateMarkers();
+    window._lastPollTime = Date.now(); // FIX: store as timestamp number, not Date object
+    document.getElementById('lastUpdated').textContent =
+      'Updated ' + new Date().toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'});
+  } catch(e) {
     console.error(e);
     renderError('Could not load live data. Check your connection or run via local server.');
   }
 }
 
-function renderError(msg){
-  document.getElementById('stationList').innerHTML=`<div class="load-state" style="color:#e8383b">⚠ ${msg}</div>`;
+function renderError(msg) {
+  document.getElementById('stationList').innerHTML = `<div class="load-state" style="color:#e8383b">⚠ ${msg}</div>`;
 }
 
-function updateSummary(){
-  const bikes=stations.reduce((s,x)=>s+x.num_bikes_available,0);
-  const ebikes=stations.reduce((s,x)=>s+x.num_ebikes_available,0);
-  const docks=stations.reduce((s,x)=>s+x.num_docks_available,0);
-  const low=stations.filter(x=>x.num_bikes_available<=2).length;
-  document.getElementById('s-stations').textContent=stations.length;
-  document.getElementById('s-bikes').textContent=bikes;
-  document.getElementById('s-ebikes').textContent=`${ebikes} e-bikes`;
-  document.getElementById('s-docks').textContent=docks;
-  document.getElementById('s-low').textContent=low;
-  document.getElementById('stationCount').textContent=`${stations.length} stations`;
+function updateSummary() {
+  const bikes  = stations.reduce((s,x) => s+x.num_bikes_available, 0);
+  const ebikes = stations.reduce((s,x) => s+x.num_ebikes_available, 0);
+  const docks  = stations.reduce((s,x) => s+x.num_docks_available, 0);
+  const low    = stations.filter(x => x.num_bikes_available <= 2).length;
+  document.getElementById('s-stations').textContent  = stations.length;
+  document.getElementById('s-bikes').textContent     = bikes;
+  document.getElementById('s-ebikes').textContent    = `${ebikes} e-bikes`;
+  document.getElementById('s-docks').textContent     = docks;
+  document.getElementById('s-low').textContent       = low;
+  document.getElementById('stationCount').textContent = `${stations.length} stations`;
 }
 
-function renderStationList(){
-  const list=document.getElementById('stationList');
-  if(!stations.length){list.innerHTML='<div class="load-state">No stations found.</div>';return;}
-  list.innerHTML=stations.map(s=>{
-    const cap=s.capacity||(s.num_bikes_available+s.num_docks_available)||1;
-    const bp=Math.round(s.num_bikes_available/cap*100);
-    const dp=Math.round(s.num_docks_available/cap*100);
-    const low=s.num_bikes_available<=2;
-    const online=s.is_installed&&s.is_renting;
-    const isOrig=ORIGINAL_STATIONS.has(s.name);
-    return`<div class="station-item${selectedId===s.station_id?' selected':''}" onclick="selectStation('${s.station_id}')" id="si-${s.station_id}">
+function renderStationList() {
+  const list = document.getElementById('stationList');
+  if (!stations.length) { list.innerHTML = '<div class="load-state">No stations found.</div>'; return; }
+  list.innerHTML = stations.map(s => {
+    const cap    = s.capacity || (s.num_bikes_available + s.num_docks_available) || 1;
+    const bp     = Math.round(s.num_bikes_available / cap * 100);
+    const dp     = Math.round(s.num_docks_available / cap * 100);
+    const low    = s.num_bikes_available <= 2;
+    const online = s.is_installed && s.is_renting;
+    const isOrig = ORIGINAL_STATIONS.has(s.name);
+    return `<div class="station-item${selectedId===s.station_id?' selected':''}" onclick="selectStation('${s.station_id}')" id="si-${s.station_id}">
       <div class="station-item-name">${s.name}${isOrig?'<span class="badge original">ORIGINAL</span>':'<span class="badge new">NEW \'25</span>'}</div>
       <div class="station-bars">
         <div class="bar-grp">
@@ -1250,125 +1342,119 @@ function renderStationList(){
   }).join('');
 }
 
-function selectStation(id){
-  selectedId=id;
-  const s=stations.find(x=>x.station_id===id);if(!s)return;
-  document.querySelectorAll('.station-item').forEach(e=>e.classList.remove('selected'));
-  const el=document.getElementById('si-'+id);
-  if(el){el.classList.add('selected');el.scrollIntoView({behavior:'smooth',block:'nearest'});}
-  if(map)map.flyTo([s.lat,s.lon],16,{duration:.7});
-  const cap=s.capacity||(s.num_bikes_available+s.num_docks_available)||1;
-  document.getElementById('detailName').textContent=s.name;
-  document.getElementById('dBikes').textContent=s.num_bikes_available;
-  document.getElementById('dEbikes').textContent=s.num_ebikes_available;
-  document.getElementById('dDocks').textContent=s.num_docks_available;
-  document.getElementById('dCap').textContent=cap;
-  document.getElementById('dCapFill').style.width=Math.round(s.num_bikes_available/cap*100)+'%';
+function selectStation(id) {
+  selectedId = id;
+  const s = stations.find(x => x.station_id === id); if (!s) return;
+  document.querySelectorAll('.station-item').forEach(e => e.classList.remove('selected'));
+  const el = document.getElementById('si-' + id);
+  if (el) { el.classList.add('selected'); el.scrollIntoView({behavior:'smooth', block:'nearest'}); }
+  if (map) map.flyTo([s.lat, s.lon], 16, {duration:.7});
+  const cap = s.capacity || (s.num_bikes_available + s.num_docks_available) || 1;
+  document.getElementById('detailName').textContent  = s.name;
+  document.getElementById('dBikes').textContent      = s.num_bikes_available;
+  document.getElementById('dEbikes').textContent     = s.num_ebikes_available;
+  document.getElementById('dDocks').textContent      = s.num_docks_available;
+  document.getElementById('dCap').textContent        = cap;
+  document.getElementById('dCapFill').style.width    = Math.round(s.num_bikes_available/cap*100) + '%';
   document.getElementById('detailPopup').classList.add('show');
 }
 
-function closeDetail(){
+function closeDetail() {
   document.getElementById('detailPopup').classList.remove('show');
-  selectedId=null;
-  document.querySelectorAll('.station-item').forEach(e=>e.classList.remove('selected'));
+  selectedId = null;
+  document.querySelectorAll('.station-item').forEach(e => e.classList.remove('selected'));
 }
 
-function initMap(){
-  map=L.map('map',{center:[40.625,-74.028],zoom:14,zoomControl:true,attributionControl:false});
-  L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png',{maxZoom:19}).addTo(map);
-  L.polygon(BAY_RIDGE_POLYGON,{color:'#0057b8',weight:2,fillColor:'#0057b8',fillOpacity:.05,dashArray:'6,4'}).addTo(map);
+function initMap() {
+  map = L.map('map', {center:[40.622,-74.030], zoom:13, zoomControl:true, attributionControl:false});
+  L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {maxZoom:19}).addTo(map);
+  L.polygon(BAY_RIDGE_POLYGON, {color:'#0057b8', weight:2, fillColor:'#0057b8', fillOpacity:.05, dashArray:'6,4'}).addTo(map);
 }
 
-function updateMarkers(){
-  Object.values(markers).forEach(m=>m.remove());markers={};
-  stations.forEach(s=>{
-    const pct=s.num_bikes_available/Math.max(s.capacity||1,1);
-    const col=s.num_bikes_available<=2?'#e8383b':pct>=.5?'#00875a':'#0057b8';
-    const isOrig=ORIGINAL_STATIONS.has(s.name);
-    const icon=L.divIcon({
-      html:`<div style="width:28px;height:28px;border-radius:50%;background:${col};border:${isOrig?'3px dashed #c47c00':'2px solid rgba(255,255,255,.6)'};display:flex;align-items:center;justify-content:center;font-family:IBM Plex Mono,monospace;font-size:10px;font-weight:700;color:#fff;box-shadow:0 2px 6px rgba(0,0,0,.25);cursor:pointer">${s.num_bikes_available}</div>`,
-      className:'',iconSize:[28,28],iconAnchor:[14,14]
+function updateMarkers() {
+  Object.values(markers).forEach(m => m.remove()); markers = {};
+  stations.forEach(s => {
+    const pct    = s.num_bikes_available / Math.max(s.capacity||1, 1);
+    const col    = s.num_bikes_available <= 2 ? '#e8383b' : pct >= .5 ? '#00875a' : '#0057b8';
+    const isOrig = ORIGINAL_STATIONS.has(s.name);
+    const icon   = L.divIcon({
+      html: `<div style="width:28px;height:28px;border-radius:50%;background:${col};border:${isOrig?'3px dashed #c47c00':'2px solid rgba(255,255,255,.6)'};display:flex;align-items:center;justify-content:center;font-family:IBM Plex Mono,monospace;font-size:10px;font-weight:700;color:#fff;box-shadow:0 2px 6px rgba(0,0,0,.25);cursor:pointer">${s.num_bikes_available}</div>`,
+      className:'', iconSize:[28,28], iconAnchor:[14,14]
     });
-    const m=L.marker([s.lat,s.lon],{icon}).addTo(map).on('click',()=>selectStation(s.station_id));
-    m.bindTooltip(`<b>${s.name}</b><br>🚲 ${s.num_bikes_available} · 🅿️ ${s.num_docks_available}`,{className:'br-tooltip',direction:'top'});
-    markers[s.station_id]=m;
+    const m = L.marker([s.lat, s.lon], {icon}).addTo(map).on('click', () => selectStation(s.station_id));
+    m.bindTooltip(`<b>${s.name}</b><br>🚲 ${s.num_bikes_available} · 🅿️ ${s.num_docks_available}`, {className:'br-tooltip', direction:'top'});
+    markers[s.station_id] = m;
   });
 }
 
-let tideChart=null, currentTide='weekday';
+let tideChart = null;
 
-function initTideChart(){
-  const ctx=document.getElementById('tideChart').getContext('2d');
-  tideChart=new Chart(ctx,{
-    type:'line',data:{labels:[],datasets:[]},
+function initTideChart() {
+  const ctx = document.getElementById('tideChart').getContext('2d');
+  tideChart = new Chart(ctx, {
+    type:'line', data:{labels:[], datasets:[]},
     options:{
       responsive:true,
-      interaction:{mode:'index',intersect:false},
+      interaction:{mode:'index', intersect:false},
       plugins:{
-        legend:{labels:{color:'#8b92a8',font:{family:'IBM Plex Mono',size:10}}},
-        tooltip:{backgroundColor:'#fff',borderColor:'#dde1ea',borderWidth:1,titleColor:'#0f1117',bodyColor:'#3a3f52',titleFont:{family:'IBM Plex Mono'}}
+        legend:{labels:{color:'#8b92a8', font:{family:'IBM Plex Mono', size:10}}},
+        tooltip:{backgroundColor:'#fff', borderColor:'#dde1ea', borderWidth:1, titleColor:'#0f1117', bodyColor:'#3a3f52', titleFont:{family:'IBM Plex Mono'}}
       },
       scales:{
-        x:{ticks:{color:'#8b92a8',font:{family:'IBM Plex Mono',size:10}},grid:{color:'#f0f1f5'}},
-        y:{ticks:{color:'#8b92a8',font:{family:'IBM Plex Mono',size:10},callback:v=>v+'%'},grid:{color:'#f0f1f5'},min:0,max:60}
+        x:{ticks:{color:'#8b92a8', font:{family:'IBM Plex Mono', size:10}}, grid:{color:'#f0f1f5'}},
+        y:{ticks:{color:'#8b92a8', font:{family:'IBM Plex Mono', size:10}, callback:v=>v+'%'}, grid:{color:'#f0f1f5'}, min:0, max:60}
       }
     }
   });
   showTide('weekday');
 }
 
-function showTide(mode){
-  currentTide=mode;
-  document.querySelectorAll('.tide-btn').forEach(b=>b.classList.remove('active'));
-  document.getElementById('tide-'+mode).classList.add('active');
-  const d=HISTORICAL.hourly[mode];
-  const labels=d.hours.map(h=>h+':00');
-  tideChart.data.labels=labels;
-  tideChart.data.datasets=[
-    {label:'Outbound %',data:d.outbound,borderColor:'#e8383b',backgroundColor:'rgba(232,56,59,.06)',fill:true,tension:.4,pointRadius:3,pointBackgroundColor:'#e8383b'},
-    {label:'Inbound %',data:d.inbound,borderColor:'#0057b8',backgroundColor:'rgba(0,87,184,.06)',fill:true,tension:.4,pointRadius:3,pointBackgroundColor:'#0057b8'},
-    {label:'Internal %',data:d.internal,borderColor:'#00875a',backgroundColor:'rgba(0,135,90,.05)',fill:true,tension:.4,pointRadius:3,pointBackgroundColor:'#00875a'},
+function showTide(mode) {
+  document.querySelectorAll('.tide-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById('tide-' + mode).classList.add('active');
+  const d = HISTORICAL.hourly[mode];
+  tideChart.data.labels   = d.hours.map(h => h + ':00');
+  tideChart.data.datasets = [
+    {label:'Outbound %', data:d.outbound, borderColor:'#e8383b', backgroundColor:'rgba(232,56,59,.06)', fill:true, tension:.4, pointRadius:3, pointBackgroundColor:'#e8383b'},
+    {label:'Inbound %',  data:d.inbound,  borderColor:'#0057b8', backgroundColor:'rgba(0,87,184,.06)',  fill:true, tension:.4, pointRadius:3, pointBackgroundColor:'#0057b8'},
+    {label:'Internal %', data:d.internal, borderColor:'#00875a', backgroundColor:'rgba(0,135,90,.05)',  fill:true, tension:.4, pointRadius:3, pointBackgroundColor:'#00875a'},
   ];
   tideChart.update();
-  document.getElementById('tide-note').textContent=mode==='weekday'
-    ?'Outbound peaks at 7–8 AM, inbound peaks at 5 PM — a clear commuter signature. Internal trips stay remarkably flat all day, a steady background hum of local rides.'
-    :'Weekends show a flatter pattern across all three types. Internal trips run slightly higher — more people riding within the neighborhood for leisure and errands.';
+  document.getElementById('tide-note').textContent = mode === 'weekday'
+    ? 'Outbound peaks at 7–8 AM, inbound peaks at 5 PM — a clear commuter signature. Internal trips stay remarkably flat all day, a steady background hum of local rides.'
+    : 'Weekends show a flatter pattern across all three types. Internal trips run slightly higher — more people riding within the neighborhood for leisure and errands.';
 }
 
-function buildHistoricalTab(){
-  buildTimeline();
-  buildSparklines();
-  buildDestLists();
-}
+function buildHistoricalTab() { buildTimeline(); buildSparklines(); buildDestLists(); }
 
-function buildTimeline(){
-  const grid=document.getElementById('timelineGrid');
-  const data=HISTORICAL.timeline;
-  const maxVal=Math.max(...data.map(d=>d.orig+d.new));
-  const maxH=120;
-  grid.innerHTML=data.map(d=>{
-    const origH=Math.max(4,Math.round(d.orig/maxVal*maxH));
-    const newH=d.new?Math.max(4,Math.round(d.new/maxVal*maxH)):0;
-    return`<div class="timeline-col">
-      ${newH?`<div class="timeline-bar new" style="height:${newH}px" title="${d.m} new stations: ${d.new} trips"></div>`:''}
+function buildTimeline() {
+  const grid   = document.getElementById('timelineGrid');
+  const data   = HISTORICAL.timeline;
+  const maxVal = Math.max(...data.map(d => d.orig + d.new));
+  const maxH   = 120;
+  grid.innerHTML = data.map(d => {
+    const origH = Math.max(4, Math.round(d.orig / maxVal * maxH));
+    const newH  = d.new ? Math.max(4, Math.round(d.new / maxVal * maxH)) : 0;
+    return `<div class="timeline-col">
+      ${newH ? `<div class="timeline-bar new" style="height:${newH}px" title="${d.m} new stations: ${d.new} trips"></div>` : ''}
       <div class="timeline-bar original" style="height:${origH}px" title="${d.m} original stations: ${d.orig} trips"></div>
       <div class="timeline-month-label">${d.label}</div>
     </div>`;
   }).join('');
 }
 
-function buildSparklines(){
-  const container=document.getElementById('sparklineList');
-  const months=HISTORICAL.months12;
-  const entries=Object.entries(HISTORICAL.original5);
-  const globalMax=Math.max(...entries.flatMap(([,v])=>v));
-  container.innerHTML=entries.map(([name,vals])=>{
-    const total=vals.reduce((a,b)=>a+b,0);
-    const bars=vals.map((v,i)=>{
-      const h=Math.max(4,Math.round(v/globalMax*48));
-      return`<div class="sparkline-bar" style="height:${h}px" title="${months[i]}: ${v} trips"></div>`;
+function buildSparklines() {
+  const container = document.getElementById('sparklineList');
+  const months    = HISTORICAL.months12;
+  const entries   = Object.entries(HISTORICAL.original5);
+  const globalMax = Math.max(...entries.flatMap(([,v]) => v));
+  container.innerHTML = entries.map(([name, vals]) => {
+    const total = vals.reduce((a,b) => a+b, 0);
+    const bars  = vals.map((v,i) => {
+      const h = Math.max(4, Math.round(v / globalMax * 48));
+      return `<div class="sparkline-bar" style="height:${h}px" title="${months[i]}: ${v} trips"></div>`;
     }).join('');
-    return`<div class="sparkline-row">
+    return `<div class="sparkline-row">
       <div class="sparkline-name">${name}</div>
       <div class="sparkline-bars">${bars}</div>
       <div class="sparkline-total">${total.toLocaleString()}</div>
@@ -1376,44 +1462,44 @@ function buildSparklines(){
   }).join('');
 }
 
-let rhythmChart=null;
-function initRhythmChart(){
-  const ctx=document.getElementById('rhythmChart').getContext('2d');
-  const d=HISTORICAL.hourly.weekday;
-  rhythmChart=new Chart(ctx,{
-    type:'bar',
-    data:{
-      labels:d.hours.map(h=>h+':00'),
-      datasets:[
-        {label:'Outbound',data:d.outbound,backgroundColor:'rgba(232,56,59,.7)',borderRadius:2},
-        {label:'Inbound',data:d.inbound,backgroundColor:'rgba(0,87,184,.7)',borderRadius:2},
+let rhythmChart = null;
+function initRhythmChart() {
+  const ctx = document.getElementById('rhythmChart').getContext('2d');
+  const d   = HISTORICAL.hourly.weekday;
+  rhythmChart = new Chart(ctx, {
+    type: 'bar',
+    data: {
+      labels: d.hours.map(h => h + ':00'),
+      datasets: [
+        {label:'Outbound', data:d.outbound, backgroundColor:'rgba(232,56,59,.7)', borderRadius:2},
+        {label:'Inbound',  data:d.inbound,  backgroundColor:'rgba(0,87,184,.7)',  borderRadius:2},
       ]
     },
-    options:{
+    options: {
       responsive:true,
       plugins:{
-        legend:{labels:{color:'#8b92a8',font:{family:'IBM Plex Mono',size:10}}},
-        tooltip:{backgroundColor:'#fff',borderColor:'#dde1ea',borderWidth:1,titleColor:'#0f1117',bodyColor:'#3a3f52',titleFont:{family:'IBM Plex Mono'}}
+        legend:{labels:{color:'#8b92a8', font:{family:'IBM Plex Mono', size:10}}},
+        tooltip:{backgroundColor:'#fff', borderColor:'#dde1ea', borderWidth:1, titleColor:'#0f1117', bodyColor:'#3a3f52', titleFont:{family:'IBM Plex Mono'}}
       },
       scales:{
-        x:{ticks:{color:'#8b92a8',font:{family:'IBM Plex Mono',size:9}},grid:{display:false}},
-        y:{ticks:{color:'#8b92a8',font:{family:'IBM Plex Mono',size:10},callback:v=>v+'%'},grid:{color:'#f0f1f5'}}
+        x:{ticks:{color:'#8b92a8', font:{family:'IBM Plex Mono', size:9}}, grid:{display:false}},
+        y:{ticks:{color:'#8b92a8', font:{family:'IBM Plex Mono', size:10}, callback:v=>v+'%'}, grid:{color:'#f0f1f5'}}
       }
     }
   });
 }
 
-function buildDestLists(){
-  const maxD=HISTORICAL.destinations[0].count;
-  const maxO=HISTORICAL.origins[0].count;
-  document.getElementById('destList').innerHTML=HISTORICAL.destinations.map((d,i)=>`
+function buildDestLists() {
+  const maxD = HISTORICAL.destinations[0].count;
+  const maxO = HISTORICAL.origins[0].count;
+  document.getElementById('destList').innerHTML = HISTORICAL.destinations.map((d,i) => `
     <div class="dest-item">
       <span class="dest-rank">${i+1}</span>
       <span class="dest-name">${d.name}</span>
       <span class="dest-count">${d.count.toLocaleString()}</span>
       <div class="dest-bar-wrap"><div class="dest-bar" style="width:${Math.round(d.count/maxD*100)}%"></div></div>
     </div>`).join('');
-  document.getElementById('origList').innerHTML=HISTORICAL.origins.map((d,i)=>`
+  document.getElementById('origList').innerHTML = HISTORICAL.origins.map((d,i) => `
     <div class="dest-item">
       <span class="dest-rank">${i+1}</span>
       <span class="dest-name">${d.name}</span>
@@ -1422,12 +1508,12 @@ function buildDestLists(){
     </div>`).join('');
 }
 
-function switchTab(tab){
-  document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
-  document.querySelectorAll('.tab-content').forEach(c=>c.classList.remove('active'));
-  document.getElementById('tab-'+tab).classList.add('active');
-  document.getElementById('content-'+tab).classList.add('active');
-  if(tab==='live'&&map)setTimeout(()=>map.invalidateSize(),100);
+function switchTab(tab) {
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+  document.getElementById('tab-' + tab).classList.add('active');
+  document.getElementById('content-' + tab).classList.add('active');
+  if (tab === 'live' && map) setTimeout(() => map.invalidateSize(), 100);
 }
 </script>
 
