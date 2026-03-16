@@ -996,7 +996,7 @@ async function fetchDailyTrend() {
       select:       'detected_at,trips_departed,trips_arrived',
       detected_at:  `gte.${since}`,
       is_rebalance: 'eq.false',
-      order:        'detected_at.asc',
+      order:        'detected_at.desc',
       limit:        '50000',
     });
 
