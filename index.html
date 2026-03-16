@@ -996,9 +996,11 @@ async function fetchDailyTrend() {
       select:       'detected_at,trips_departed,trips_arrived',
       detected_at:  `gte.${since}`,
       is_rebalance: 'eq.false',
-      order:        'detected_at.desc',
+      order:        'detected_at.asc',
       limit:        '50000',
     });
+
+console.log('fetchDailyTrend rows:', trips.length, 'first:', trips[0]?.detected_at, 'last:', trips[trips.length-1]?.detected_at);
 
     if (!trips.length) {
       document.getElementById('dailyTrendMeta').textContent = 'No data yet';
