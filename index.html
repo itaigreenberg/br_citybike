@@ -670,6 +670,17 @@ async function sbGet(table, params) {
 }
 
 // ═══════════════════════════════════════════
+// TRIP COUNT CORRECTION FACTOR
+// ═══════════════════════════════════════════
+// Supabase counts dock events (dep + arr), not O-D trips.
+// Internal BR→BR trips generate 2 dock events but are 1 actual ride.
+// From Jan–Mar 2026 CSV analysis: internal=51.9%, out=22.3%, in=25.8%
+// dock_events = out + in + (internal × 2) = 1.519 × actual_rides
+// So: actual_rides = dock_events × 0.658
+const DOCK_TO_RIDE = 0.658;
+function toRides(dockEvents) { return Math.round(dockEvents * DOCK_TO_RIDE); }
+
+// ═══════════════════════════════════════════
 // HISTORICAL DATA
 // ═══════════════════════════════════════════
 const HISTORICAL = {
@@ -905,12 +916,13 @@ async function fetchVsExpected() {
     // Current trips from the shared cache
     const oneHourAgo  = new Date(now - 60 * 60 * 1000 - 10 * 60 * 1000);
     const recentTrips = window._tripCache || [];
-    const currentTrips = recentTrips
+    const currentDockEvents = recentTrips
       .filter(t => new Date(t.detected_at) >= oneHourAgo)
       .reduce((s, t) => s + (t.trips_departed||0) + (t.trips_arrived||0), 0);
+    const currentTrips = toRides(currentDockEvents);
 
     const currentKey   = `${localDow}-${localHour}`;
-    const expectedTrips = baseline[currentKey] || 0;
+    const expectedTrips = toRides(baseline[currentKey] || 0);
 
     let pctChange = 0, direction = 'typical';
     if (expectedTrips > 0) {
@@ -962,11 +974,12 @@ async function fetchVsExpected() {
       const h = new Date(t.detected_at).getHours();
       todayByHour[h] = (todayByHour[h] || 0) + (t.trips_departed || 0) + (t.trips_arrived || 0);
     });
-    const todayHourly = Array.from({length: 24}, (_, h) => todayByHour[h] || null);
+    const todayHourly = Array.from({length: 24}, (_, h) =>
+      todayByHour[h] != null ? toRides(todayByHour[h]) : null);
 
     const baselineByHour = Array.from({length: 24}, (_, h) => {
       const k = `${localDow}-${h}`;
-      return baseline[k] ? Math.round(baseline[k] * 10) / 10 : null;
+      return baseline[k] ? Math.round(toRides(baseline[k]) * 10) / 10 : null;
     });
 
     updateComparisonChart(todayHourly, baselineByHour, now);
@@ -1067,11 +1080,11 @@ async function fetchDailyTrend() {
     trips.forEach(r => {
       const d       = new Date(r.detected_at);
       const dateKey = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
-      byDate[dateKey] = (byDate[dateKey] || 0) + (r.trips_departed || 0) + (r.trips_arrived || 0);
+      byDate[dateKey] = (byDate[dateKey] || 0) + (r.trips_departed || 0) + (r.trips_arrived || 0); // raw dock events
     });
 
     const dates  = Object.keys(byDate).sort();
-    const counts = dates.map(d => byDate[d]);
+    const counts = dates.map(d => toRides(byDate[d])); // convert dock events → actual rides
 
     // 7-day rolling average
     const rolling = counts.map((_, i) => {
@@ -1094,7 +1107,7 @@ async function fetchDailyTrend() {
     // Trend note: compare last 7-day avg to prior 7-day avg
     const avg7     = rolling[rolling.length - 1];
     const avg7prev = rolling.length > 7 ? rolling[rolling.length - 8] : null;
-    let note = `Trips per day · bars = daily total · line = 7-day rolling avg (~${avg7}/day)`;
+    let note = `Estimated actual rides/day · bars = daily · line = 7-day avg (~${avg7}/day)`;
     if (avg7prev !== null) {
       const delta = Math.round(avg7 - avg7prev);
       note += ` · ${delta >= 0 ? '+' : ''}${delta} vs week ago`;
@@ -1205,10 +1218,10 @@ function renderActivityWindow(trips, w) {
   const depW  = filtered.reduce((s,t) => s+(t.trips_departed||0), 0);
   const arrW  = filtered.reduce((s,t) => s+(t.trips_arrived||0), 0);
 
-  document.getElementById('s-trips-1h').textContent     = dep1h + arr1h;
-  document.getElementById('s-trips-1h-sub').textContent = `${dep1h} out · ${arr1h} in`;
-  document.getElementById('s-trips-2h').textContent     = depW + arrW;
-  document.getElementById('s-trips-2h-sub').textContent = `${depW} out · ${arrW} in · last ${w}`;
+  document.getElementById('s-trips-1h').textContent     = toRides(dep1h + arr1h);
+  document.getElementById('s-trips-1h-sub').textContent = `~${toRides(dep1h + arr1h)} actual rides`;
+  document.getElementById('s-trips-2h').textContent     = toRides(depW + arrW);
+  document.getElementById('s-trips-2h-sub').textContent = `~${toRides(depW + arrW)} rides · last ${w}`;
 
   if (!filtered.length) {
     document.getElementById('activity-body').innerHTML =
@@ -1595,19 +1608,19 @@ async function loadActivityTab() {
     trips.forEach(t => {
       if (!byStation[t.station_name]) byStation[t.station_name] = {dep:0, arr:0};
       byStation[t.station_name].dep += t.trips_departed || 0;
-      byStation[t.station_name].arr += t.trips_arrived  || 0;
+      byStation[t.station_name].arr += t.trips_arrived  || 0; // raw dock events
     });
 
     const stations = Object.entries(byStation).map(([name, v]) => ({
       name,
-      total: v.dep + v.arr,
+      total: toRides(v.dep + v.arr), // convert to actual rides
       dep: v.dep,
       arr: v.arr,
     })).sort((a, b) => b.total - a.total);
 
     const totalTrips = stations.reduce((s, x) => s + x.total, 0);
     document.getElementById('activityTabMeta').textContent =
-      `Last 30 days · ${stations.length} stations · ${totalTrips.toLocaleString()} total trips`;
+      `Last 30 days · ${stations.length} stations · ${totalTrips.toLocaleString()} estimated rides`;
 
     // Init map if needed
     if (!activityMap) {
